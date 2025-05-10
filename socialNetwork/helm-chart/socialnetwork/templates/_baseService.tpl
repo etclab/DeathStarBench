@@ -5,7 +5,7 @@ kind: Service
 metadata:
   name: {{ .Values.name }}
 spec:
-  type: {{ .Values.type | default .Values.global.serviceType }}
+  type: {{ .Values.type | default .Values.type | default .Values.global.serviceType }}
   ports:  
   {{- range .Values.ports }}
   - name: "{{ .port }}"
@@ -14,6 +14,9 @@ spec:
     protocol: {{ .protocol }}
     {{- end}}
     targetPort: {{ .targetPort }}
+    {{- if .nodePort}}
+    nodePort: {{ .nodePort }}
+    {{- end}}
   {{- end}}
   selector:
     service: {{ .Values.name }} 

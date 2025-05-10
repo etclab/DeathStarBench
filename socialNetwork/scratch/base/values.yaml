@@ -1,0 +1,24 @@
+prometheus:
+  enabled: true
+  deploy: true
+  # old values
+  # memory: 32Gi
+  # storage: 500Gi
+  # TODO: adjusted for minikube
+  memory: 8Gi
+  storage: 10Gi
+  storageClassName: ssd
+storageclass:
+  deploy: true
+
+domain: v103.qualistio.org
+
+certManager:
+  enabled: false
+  # Can be prod/staging
+  server: prod
+  email: ""
+
+als:
+  enabled: false
+  Image: gcr.io/mixologist-142215/als:v002
