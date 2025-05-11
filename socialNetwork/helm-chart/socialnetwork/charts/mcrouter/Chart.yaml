@@ -1,0 +1,18 @@
+apiVersion: v2
+appVersion: 0.40.0
+dependencies:
+- condition: mcrouter.memcached.enabled
+  name: memcached
+  repository: https://charts.bitnami.com/bitnami
+  version: ~5.15
+description: Mcrouter is a memcached protocol router for scaling memcached deployments.
+home: https://github.com/facebook/mcrouter
+icon: https://img.stackshare.io/service/4370/G7xgmEZ.png
+maintainers:
+- email: david@davidkarlsen.com
+  name: davidkarlsen
+name: mcrouter
+sources:
+- https://github.com/facebook/mcrouter
+- https://github.com/evryfs/docker-mcrouter
+version: 0.3.0

@@ -77,11 +77,9 @@ if [[ "$install_social_network" == "true" ]]; then
     mazu_echo "Upgrading social network..."
     helm upgrade --install social-network $SCRIPT_DIR/helm-chart/socialnetwork/ \
         --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
+        --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
+        --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
         --timeout 10m0s --wait
-
-#         --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
-#         --set global.redis.replication.enabled=true,global.redis.standalone.enabled=false \
-#         --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
@@ -91,4 +89,7 @@ if [[ "$uninstall_social_network" == "true" ]]; then
     # remove pvc
     for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=mongodb-sharded); do kubectl delete $p; done
     for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=redis-cluster); do kubectl delete $p; done
+
+    kubectl delete pods redis-cluster-readiness-hook
+    kubectl delete pods setup-collection-sharding-hook
 fi

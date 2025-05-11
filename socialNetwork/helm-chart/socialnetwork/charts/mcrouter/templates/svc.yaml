@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+spec:
+  {{- with .Values.service.clusterIP }}
+  clusterIP: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.service.type }}
+  type: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ . | quote }}
+  {{- end }}
+  ports:
+  - name: mcrouter-port
+    port: {{ .Values.service.port }}
+    targetPort: mcrouter-port
+  {{- if .Values.exporter.enabled }}
+  - name: monitoring
+    targetPort: monitoring
+    port: {{ .Values.exporter.service.port }}
+  {{- end }}
+  selector:
+    app: {{ template "fullname" . }}
+  {{- with .Values.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . }}
+  {{- end }}

@@ -10,6 +10,9 @@ data:
         from typing import Optional
         from redis import RedisCluster
         from redis.exceptions import RedisClusterException
+        import requests
+
+        ISTIO_QUIT_ENDPOINT = "http://localhost:15020/quitquitquit"
 
         logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", handlers=[logging.StreamHandler()])
         log = logging.getLogger()
@@ -17,6 +20,14 @@ data:
         redis_cluster_uri: str = "{{ .Release.Name }}-redis-cluster"
         redis_cluster_is_ready: bool = False
         redis_cluster_connection: Optional[RedisCluster] = None
+
+        def quit_istio_sidecar():
+            log.info("Attempting to quit Istio sidecar...")
+            try:
+                response = requests.post(ISTIO_QUIT_ENDPOINT, timeout=5)
+                log.info(f"Istio sidecar quit response: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                log.warning(f"Could not quit Istio sidecar (this is okay if not in Istio or sidecar is already stopping): {e}")
 
         while True:
             try:
@@ -40,4 +51,6 @@ data:
             sleep(5)
 
         log.info("Redis Cluster is configured and ready to use!")
+        quit_istio_sidecar()
+        
 {{- end }}

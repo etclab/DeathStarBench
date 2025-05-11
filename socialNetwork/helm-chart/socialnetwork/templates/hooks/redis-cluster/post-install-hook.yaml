@@ -10,7 +10,7 @@ spec:
   - name: post-install-container
     image: python
     imagePullPolicy: Always
-    command: ['sh', '-c', 'python -m pip install redis && python /tmp/redis_readiness_check.py']  
+    command: ['sh', '-c', 'python -m pip install requests redis && python /tmp/redis_readiness_check.py']  
     volumeMounts:
       - name: redis-readiness-script
         mountPath: /tmp       
