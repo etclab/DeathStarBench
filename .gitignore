@@ -12,3 +12,4 @@ wrk2/obj/
 
 venv
 istio-1.24.0/
+*.log

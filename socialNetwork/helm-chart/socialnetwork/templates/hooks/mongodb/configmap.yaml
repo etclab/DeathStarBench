@@ -10,6 +10,9 @@ data:
         from collections import namedtuple
         from typing import Any, Dict
         import pymongo
+        import requests # For calling the quit endpoint
+
+        ISTIO_QUIT_ENDPOINT = "http://localhost:15020/quitquitquit"
 
         CollectionSettings = namedtuple('CollectionSettings', 'db name index_key')
 
@@ -69,6 +72,14 @@ data:
             log.info(f'Collection {settings.db}.{settings.name} sharded')
 
 
+        def quit_istio_sidecar():
+            log.info("Attempting to quit Istio sidecar...")
+            try:
+                response = requests.post(ISTIO_QUIT_ENDPOINT, timeout=5)
+                log.info(f"Istio sidecar quit response: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                log.warning(f"Could not quit Istio sidecar (this is okay if not in Istio or sidecar is already stopping): {e}")
+
         def setup_mongo() -> None:
             while True:
                 try:
@@ -77,6 +88,7 @@ data:
                         create_db(settings.db, client)
                         enable_sharding(settings.db, client)
                         shard_collection(settings, client)
+                    quit_istio_sidecar()
                     return
                 except Exception as ex:
                     log.error('Could not setup sharding, retrying... ({})'.format(ex))

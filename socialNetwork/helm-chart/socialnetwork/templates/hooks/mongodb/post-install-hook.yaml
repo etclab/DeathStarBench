@@ -10,7 +10,7 @@ spec:
   - name: post-install-container
     image: python
     imagePullPolicy: Always
-    command: ['sh', '-c', 'python -m pip install pymongo && python /tmp/init_social_network.py']  
+    command: ['sh', '-c', 'python -m pip install pymongo requests && python /tmp/init_social_network.py']  
     volumeMounts:
       - name: mongo-init-script
         mountPath: /tmp

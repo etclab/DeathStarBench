@@ -44,7 +44,7 @@ global:
         password: &mongodb-sharded-password "password"
         port: 27017
   nginx:
-    resolverName: kube-dns.kube-system.svc.cluster.local
+    resolverName: coredns.kube-system.svc.cluster.local
   jaeger:
     localAgentHostPort: jaeger:6831
     queueSize: 1000000
