@@ -3,7 +3,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: nsf-client
+  name: nfs-client
 parameters:
   type: pd-ssd
 provisioner: kubernetes.io/gce-pd
