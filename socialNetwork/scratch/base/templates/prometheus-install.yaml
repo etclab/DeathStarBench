@@ -1,23 +1,12 @@
 {{- if .Values.prometheus.deploy }}
-# {{- if .Values.storageclass.deploy }}
-# # GKE cluster storage
-# apiVersion: storage.k8s.io/v1
-# kind: StorageClass
-# metadata:
-#   name: ssd
-# parameters:
-#   type: pd-ssd
-# provisioner: kubernetes.io/gce-pd
-# reclaimPolicy: Delete
-# volumeBindingMode: Immediate
-# {{- end}}
-# TODO: adjusted for minikube
 {{- if .Values.storageclass.deploy }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: ssd
-provisioner: k8s.io/minikube-hostpath  # Change to minikube's provisioner
+  name: nsf-client
+parameters:
+  type: pd-ssd
+provisioner: kubernetes.io/gce-pd
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 {{- end}}
