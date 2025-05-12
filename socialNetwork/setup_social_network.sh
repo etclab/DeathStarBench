@@ -75,10 +75,12 @@ fi
 
 if [[ "$install_social_network" == "true" ]]; then
     mazu_echo "Upgrading social network..."
+    kubectl apply -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
+
     helm upgrade --install social-network $SCRIPT_DIR/helm-chart/socialnetwork/ \
-        --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
         --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
         --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
+        --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
         --timeout 10m0s --wait
 fi
 
@@ -92,4 +94,7 @@ if [[ "$uninstall_social_network" == "true" ]]; then
 
     kubectl delete pods redis-cluster-readiness-hook
     kubectl delete pods setup-collection-sharding-hook
+    kubectl delete pods setup-mcrouter-configmap
+    
+    kubectl delete -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
 fi

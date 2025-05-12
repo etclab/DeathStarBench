@@ -5,7 +5,7 @@ prometheus:
   storage: 500Gi
   storageClassName: nfs-client
 storageclass:
-  deploy: true
+  deploy: false
 
 domain: v103.qualistio.org
 

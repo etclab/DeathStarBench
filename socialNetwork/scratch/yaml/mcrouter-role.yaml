@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: deathstarbench-mcrouter-role
+rules:
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get", "list", "patch", "update"] # Added patch and update for restarting
+- apiGroups: [""] # Core API group
+  resources: ["configmaps"]
+  verbs: ["list", "get", "create", "update", "patch"] # Added get, create, update, patch for configmap management
+- apiGroups: [""] # Core API group
+  resources: ["pods"]
+  verbs: ["list"]
+- apiGroups: [""] # Core API group
+  resources: ["services"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deathstarbench-mcrouter-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: default # Name of the ServiceAccount
+  namespace: default
+roleRef:
+  kind: Role
+  name: deathstarbench-mcrouter-role # Name of the Role created above
+  apiGroup: rbac.authorization.k8s.io
