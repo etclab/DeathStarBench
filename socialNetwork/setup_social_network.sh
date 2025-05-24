@@ -81,7 +81,7 @@ if [[ "$install_social_network" == "true" ]]; then
         --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
         --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
         --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
-        --timeout 10m0s --wait
+        --timeout 15m0s 
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
