@@ -11,6 +11,7 @@ echo $SCRIPT_DIR
 init_social_graph=false
 build_wrk2=false
 install_istio=false
+install_mazu=false
 init_packages=false
 install_social_network=false
 uninstall_social_network=false
@@ -20,6 +21,7 @@ for cmd in "$@"; do
         init-social-graph) init_social_graph=true ;;
         build-wrk2) build_wrk2=true ;;
         install-istio) install_istio=true ;;
+        install-mazu) install_mazu=true ;;
         init-packages) init_packages=true ;;
         install-social-network) install_social_network=true ;;
         uninstall-social-network) uninstall_social_network=true ;;
