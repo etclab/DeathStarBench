@@ -49,6 +49,34 @@ if [[ "$build_wrk2" == "true" ]]; then
     cd $SCRIPT_DIR
 fi
 
+if [[ "$install_mazu" == "true" ]]; then
+    DOCKER_HUB=docker.io/atosh502 
+    DOCKER_TAG=atosh502
+
+    if [ ! -x "$ISTIOCTL_PATH" ]; then
+        mazu_echo "Installing istioctl..."
+        cd $HOME
+        curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.24.0 TARGET_ARCH=x86_64 sh -
+        export PATH=$HOME/.istioctl/bin:$PATH  # apply for current shell
+        cd -
+    fi
+
+    mazu_echo "Installing Istio..."
+    "$SCRIPT_DIR/dev/install_etcd.sh"
+
+    "$ISTIOCTL_PATH" install --set profile=default --set hub=$DOCKER_HUB \
+        --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y
+
+    kubectl apply -f "$SCRIPT_DIR/dev/token-review-role.yaml" 
+    kubectl apply -f "$SCRIPT_DIR/dev/token-review-binding.yaml"
+
+    kubectl label namespace default istio-injection=enabled --overwrite
+    kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
+
+    mazu_echo "Installing Prometheus..."
+    "$SCRIPT_DIR/scratch/install-prometheus.sh"
+fi
+
 if [[ "$install_istio" == "true" ]]; then
 
     if [ ! -x "$ISTIOCTL_PATH" ]; then
