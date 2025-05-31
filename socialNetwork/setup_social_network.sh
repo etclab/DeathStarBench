@@ -15,6 +15,7 @@ install_mazu=false
 init_packages=false
 install_social_network=false
 uninstall_social_network=false
+run_mixed_load=false
 
 for cmd in "$@"; do
     case $cmd in
@@ -25,6 +26,7 @@ for cmd in "$@"; do
         init-packages) init_packages=true ;;
         install-social-network) install_social_network=true ;;
         uninstall-social-network) uninstall_social_network=true ;;
+        run-mixed-load) run_mixed_load=true;;
         *) 
             mazu_echo "Unknown command: $cmd"
             ;;
@@ -53,7 +55,7 @@ fi
 
 if [[ "$install_mazu" == "true" ]]; then
     DOCKER_HUB=docker.io/atosh502 
-    DOCKER_TAG=atosh502
+    DOCKER_TAG=st3-TokRev
 
     if [ ! -x "$ISTIOCTL_PATH" ]; then
         mazu_echo "Installing istioctl..."
@@ -100,31 +102,35 @@ fi
 
 if [[ "$init_social_graph" == "true" ]]; then
     mazu_echo "Initializing social graph..."
+    NODE_IP=$(curl -4 -s icanhazip.com)
+    NODE_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
     python3 $SCRIPT_DIR/scripts/init_social_graph.py --graph=socfb-Reed98
 fi
 
 if [[ "$install_social_network" == "true" ]]; then
-    mazu_echo "Upgrading social network..."
-    kubectl apply -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
+    mazu_echo "Installing social network..."
 
-    helm upgrade --install social-network $SCRIPT_DIR/helm-chart/socialnetwork/ \
-        --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
-        --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
-        --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
-        --timeout 15m0s 
+    kubectl apply -f $SCRIPT_DIR/kubernetes/optimized.yaml
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
     mazu_echo "Uninstalling social network..."
-    helm uninstall social-network
-
-    # remove pvc
-    for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=mongodb-sharded); do kubectl delete $p; done
-    for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=redis-cluster); do kubectl delete $p; done
-
-    kubectl delete pods redis-cluster-readiness-hook
-    kubectl delete pods setup-collection-sharding-hook
-    kubectl delete pods setup-mcrouter-configmap
     
-    kubectl delete -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
+    kubectl delete -f $SCRIPT_DIR/kubernetes/optimized.yaml
+fi
+
+if [[ "$run_mixed_load" == "true" ]]; then
+    mazu_echo "Running mixed workload..."
+    NODE_IP=$(curl -4 -s icanhazip.com)
+    NODE_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}') 
+
+    mkdir -p results/mixed
+
+    for reqs in 1000 2000 3000 4000
+    do
+        echo "Running for ${reqs} reqs"
+        ../wrk2/wrk -D exp -t 10 -c 10 -d 60 -L -s ./wrk2/scripts/social-network/mixed-workload.lua http://$NODE_IP:$NODE_PORT -R ${reqs} >> results/mixed/${reqs}.txt
+    done
+    echo "=== All tests completed ==="
+    echo "Results saved in results/mixed/"
 fi
