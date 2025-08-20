@@ -27,6 +27,7 @@ for cmd in "$@"; do
         install-social-network) install_social_network=true ;;
         uninstall-social-network) uninstall_social_network=true ;;
         run-mixed-load) run_mixed_load=true;;
+        remove-istio) remove_istio=true ;;
         *) 
             mazu_echo "Unknown command: $cmd"
             ;;
@@ -51,6 +52,10 @@ if [[ "$build_wrk2" == "true" ]]; then
     cd ../wrk2
     make
     cd $SCRIPT_DIR
+fi
+
+if [[ "$remove_istio" == "true" ]]; then
+    "$ISTIOCTL_PATH" uninstall -y --purge
 fi
 
 if [[ "$install_mazu" == "true" ]]; then
