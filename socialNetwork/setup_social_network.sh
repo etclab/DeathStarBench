@@ -27,6 +27,7 @@ for cmd in "$@"; do
         install-social-network) install_social_network=true ;;
         uninstall-social-network) uninstall_social_network=true ;;
         run-mixed-load) run_mixed_load=true;;
+        remove-istio) remove_istio=true ;;
         *) 
             mazu_echo "Unknown command: $cmd"
             ;;
@@ -51,6 +52,10 @@ if [[ "$build_wrk2" == "true" ]]; then
     cd ../wrk2
     make
     cd $SCRIPT_DIR
+fi
+
+if [[ "$remove_istio" == "true" ]]; then
+    "$ISTIOCTL_PATH" uninstall -y --purge
 fi
 
 if [[ "$install_mazu" == "true" ]]; then
@@ -108,15 +113,45 @@ if [[ "$init_social_graph" == "true" ]]; then
 fi
 
 if [[ "$install_social_network" == "true" ]]; then
-    mazu_echo "Installing social network..."
+    mazu_echo "Upgrading social network..."
+    kubectl apply -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
 
-    kubectl apply -f $SCRIPT_DIR/kubernetes/optimized.yaml
+    helm upgrade --install social-network $SCRIPT_DIR/helm-chart/socialnetwork/ \
+        --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
+        --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
+        --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
+        --set mongodb-sharded.shards=1 \
+        --set mcrouter.memcached.replicaCount=1 \
+        --set redis.replica.replicaCount=1 \
+        --timeout 10m0s --wait
+
+        # --set redis-cluster.cluster.replicas=1 \
+        # --set redis-cluster.cluster.nodes=1 \
+        # --set redis-cluster.cluster.nodes=3 \
+        # --set redis-cluster.cluster.replicas=0 \
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
     mazu_echo "Uninstalling social network..."
+    helm uninstall social-network
+
+    # remove mongodb/redis statefulsets
+    kubectl delete statefulsets --all --wait=true
+
+    # remove pvc
+    for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=mongodb-sharded); do kubectl delete $p; done
+    for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=redis-cluster); do kubectl delete $p; done
+
+    kubectl delete pods redis-cluster-readiness-hook
+    kubectl delete pods setup-collection-sharding-hook
+    kubectl delete pods setup-mcrouter-configmap
+
+    # Clean up secrets and configmaps related to mongodb
+    kubectl delete secrets mongodb-sharded
+    kubectl delete configmaps mongo-init-script
+    kubectl delete configmaps mongodb-sharded-replicaset-entrypoint
     
-    kubectl delete -f $SCRIPT_DIR/kubernetes/optimized.yaml
+    kubectl delete -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
 fi
 
 if [[ "$run_mixed_load" == "true" ]]; then

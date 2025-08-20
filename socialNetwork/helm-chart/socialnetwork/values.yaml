@@ -42,6 +42,7 @@ global:
         name: "mongodb-sharded"
         user: "root"
         password: &mongodb-sharded-password "password"
+        replicaSetKey: &mongodb-sharded-replicaSetKey "password"
         port: 27017
   nginx:
     resolverName: coredns.kube-system.svc.cluster.local
@@ -58,6 +59,7 @@ mongodb-sharded:
   fullnameOverride: mongodb-sharded
   auth:
     rootPassword: *mongodb-sharded-password
+    replicaSetKey: &mongodb-sharded-replicaSetKey "password"
   shards: 3
   shardsvr:
     dataNode:

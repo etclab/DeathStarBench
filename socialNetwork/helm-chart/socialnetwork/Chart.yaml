@@ -74,7 +74,7 @@ dependencies:
   - name: user-timeline-service
     version: 0.1.0
   - name: mongodb-sharded
-    version: 6.0.1
+    version: 9.0.0
     condition: global.mongodb.sharding.enabled
     repository: https://charts.bitnami.com/bitnami
   - name: mcrouter
