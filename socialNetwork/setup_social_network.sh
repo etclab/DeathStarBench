@@ -8,6 +8,13 @@ ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
 
 echo $SCRIPT_DIR
 
+get_ingress_ip_port () {
+    INGRESS_NAME=istio-ingressgateway
+    INGRESS_NS=istio-system
+    INGRESS_IP=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+}
+
 init_social_graph=false
 build_wrk2=false
 install_istio=false
@@ -107,9 +114,11 @@ fi
 
 if [[ "$init_social_graph" == "true" ]]; then
     mazu_echo "Initializing social graph..."
-    NODE_IP=$(curl -4 -s icanhazip.com)
-    NODE_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
-    python3 $SCRIPT_DIR/scripts/init_social_graph.py --graph=socfb-Reed98
+
+    get_ingress_ip_port
+
+    python3 $SCRIPT_DIR/scripts/init_social_graph.py --graph=socfb-Reed98 \
+        --ip=$INGRESS_IP --port=$INGRESS_PORT
 fi
 
 if [[ "$install_social_network" == "true" ]]; then
@@ -117,18 +126,10 @@ if [[ "$install_social_network" == "true" ]]; then
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
 
     helm upgrade --install social-network $SCRIPT_DIR/helm-chart/socialnetwork/ \
-        --set global.redis.cluster.enabled=true,global.redis.standalone.enabled=false \
-        --set global.memcached.cluster.enabled=true,global.memcached.standalone.enabled=false \
-        --set global.mongodb.sharding.enabled=true,global.mongodb.standalone.enabled=false \
-        --set mongodb-sharded.shards=1 \
-        --set mcrouter.memcached.replicaCount=1 \
-        --set redis.replica.replicaCount=1 \
         --timeout 10m0s --wait
 
-        # --set redis-cluster.cluster.replicas=1 \
-        # --set redis-cluster.cluster.nodes=1 \
-        # --set redis-cluster.cluster.nodes=3 \
-        # --set redis-cluster.cluster.replicas=0 \
+    mazu_echo "Configuring gateway and virtual service..."
+    kubectl apply -f $SCRIPT_DIR/kubernetes/istio-gateway.yaml
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
@@ -152,19 +153,24 @@ if [[ "$uninstall_social_network" == "true" ]]; then
     kubectl delete configmaps mongodb-sharded-replicaset-entrypoint
     
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/mcrouter-role.yaml
+
+    mazu_echo "Removing gateway and virtual service..."
+    kubectl delete -f $SCRIPT_DIR/kubernetes/istio-gateway.yaml
 fi
 
 if [[ "$run_mixed_load" == "true" ]]; then
     mazu_echo "Running mixed workload..."
-    NODE_IP=$(curl -4 -s icanhazip.com)
-    NODE_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}') 
+
+    # fetch ingress IP and port
+    get_ingress_ip_port
 
     mkdir -p results/mixed
 
-    for reqs in 1000 2000 3000 4000
+    # for reqs in 1000 2000 3000 4000
+    for reqs in 100 
     do
         echo "Running for ${reqs} reqs"
-        ../wrk2/wrk -D exp -t 10 -c 10 -d 60 -L -s ./wrk2/scripts/social-network/mixed-workload.lua http://$NODE_IP:$NODE_PORT -R ${reqs} >> results/mixed/${reqs}.txt
+        ../wrk2/wrk -D exp -t 10 -c 10 -d 60 -L -s ./wrk2/scripts/social-network/mixed-workload.lua http://$INGRESS_IP:$INGRESS_PORT -R ${reqs} >> results/mixed/${reqs}.txt
     done
     echo "=== All tests completed ==="
     echo "Results saved in results/mixed/"
