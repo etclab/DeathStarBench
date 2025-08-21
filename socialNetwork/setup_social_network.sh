@@ -116,25 +116,34 @@ if [[ "$install_social_network" == "true" ]]; then
     mazu_echo "Installing social network..."
 
     kubectl apply -f $SCRIPT_DIR/kubernetes/optimized.yaml
+
+    mazu_echo "Configuring gateway and virtual service..."
+    kubectl apply -f $SCRIPT_DIR/kubernetes/istio-gateway.yaml
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
     mazu_echo "Uninstalling social network..."
     
     kubectl delete -f $SCRIPT_DIR/kubernetes/optimized.yaml
+
+    mazu_echo "Removing gateway and virtual service..."
+    kubectl delete -f $SCRIPT_DIR/kubernetes/istio-gateway.yaml
 fi
 
 if [[ "$run_mixed_load" == "true" ]]; then
     mazu_echo "Running mixed workload..."
-    NODE_IP=$(curl -4 -s icanhazip.com)
-    NODE_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}') 
+
+    INGRESS_NAME=istio-ingressgateway
+    INGRESS_NS=istio-system
+    INGRESS_IP=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
 
     mkdir -p results/mixed
 
     for reqs in 1000 2000 3000 4000
     do
         echo "Running for ${reqs} reqs"
-        ../wrk2/wrk -D exp -t 10 -c 10 -d 60 -L -s ./wrk2/scripts/social-network/mixed-workload.lua http://$NODE_IP:$NODE_PORT -R ${reqs} >> results/mixed/${reqs}.txt
+        ../wrk2/wrk -D exp -t 10 -c 10 -d 60 -L -s ./wrk2/scripts/social-network/mixed-workload.lua http://$INGRESS_IP:$INGRESS_PORT -R ${reqs} >> results/mixed/${reqs}.txt
     done
     echo "=== All tests completed ==="
     echo "Results saved in results/mixed/"
