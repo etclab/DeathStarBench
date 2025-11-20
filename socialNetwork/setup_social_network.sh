@@ -23,6 +23,7 @@ init_packages=false
 install_social_network=false
 uninstall_social_network=false
 run_mixed_load=false
+keep_alive=true # by default use keep-alive
 
 for cmd in "$@"; do
     case $cmd in
@@ -38,6 +39,7 @@ for cmd in "$@"; do
         uninstall-social-network) uninstall_social_network=true ;;
         run-mixed-load) run_mixed_load=true;;
         remove-istio) remove_istio=true ;;
+        disable-keep-alive) keep_alive=false ;;
         *) 
             mazu_echo "Unknown command: $cmd"
             ;;
@@ -66,12 +68,14 @@ fi
 
 if [[ "$remove_istio" == "true" ]]; then
     "$ISTIOCTL_PATH" uninstall -y --purge
+    kubectl delete lease istiod-key-curator-leader -n istio-system
+    kubectl wait --for=delete leases.coordination.k8s.io istiod-key-curator-leader -n istio-system --timeout=300s
 fi
 
 if [[ "$install_mazu" == "true" ]]; then
     DOCKER_HUB=docker.io/atosh502 
     # DOCKER_TAG=st3-TokRev
-    DOCKER_TAG=st2-NIChaRes
+    DOCKER_TAG=atosh502
 
     if [ ! -x "$ISTIOCTL_PATH" ]; then
         mazu_echo "Installing istioctl..."
@@ -85,17 +89,17 @@ if [[ "$install_mazu" == "true" ]]; then
     "$SCRIPT_DIR/dev/install_etcd.sh"
 
     "$ISTIOCTL_PATH" install --set profile=default --set hub=$DOCKER_HUB \
-        --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y \
-        --set values.global.proxy.resources.limits.memory=2Gi \
+        --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y 
 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-role.yaml" 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-binding.yaml"
+    kubectl apply -f "$SCRIPT_DIR/dev/lease-role.yaml"
 
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 
-    mazu_echo "Installing Prometheus..."
-    "$SCRIPT_DIR/scratch/install-prometheus.sh"
+    # mazu_echo "Installing Prometheus..."
+    # "$SCRIPT_DIR/scratch/install-prometheus.sh"
 fi
 
 if [[ "$install_istio" == "true" ]]; then
@@ -113,8 +117,8 @@ if [[ "$install_istio" == "true" ]]; then
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 
-    mazu_echo "Installing Prometheus..."
-    "$SCRIPT_DIR/scratch/install-prometheus.sh"
+    # mazu_echo "Installing Prometheus..."
+    # "$SCRIPT_DIR/scratch/install-prometheus.sh"
 fi
 
 if [[ "$init_social_graph" == "true" ]]; then
@@ -142,12 +146,14 @@ if [[ "$install_bf" == "true" ]]; then
     mazu_echo "Installing Bookinfo application..."
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo.yaml
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
+    kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
 
 if [[ "$uninstall_bf" == "true" ]]; then
     mazu_echo "Uninstalling Bookinfo application..."
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo.yaml
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
+    kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
 
 if [[ "$uninstall_social_network" == "true" ]]; then
@@ -190,15 +196,57 @@ if [[ "$run_mixed_load" == "true" ]]; then
     # fetch ingress IP and port
     get_ingress_ip_port
 
-    # mkdir -p results/mixed
-    mkdir -p results/home
+    DURATION=${DURATION:-60}
+    STRAT=${STRAT:-"st3-TokRev"}
 
-    # for reqs in 1000 2000 3000 4000
-    for reqs in 1 
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    RES_DIR="results/productpage/${TIMESTAMP}/${STRAT}-${DURATION}"
+
+    mkdir -p $RES_DIR
+
+    for reqs in 100 250 500 750 1000
     do
+        # delete istio and workload if exists
+        ${SCRIPT_DIR}/setup_social_network.sh uninstall-bf
+        kubectl wait --for=delete pod -l app=details --timeout=300s
+        kubectl wait --for=delete pod -l app=productpage --timeout=300s
+        kubectl wait --for=delete pod -l app=ratings --timeout=300s
+        kubectl wait --for=delete pod -l app=reviews --timeout=300s
+
+        ${SCRIPT_DIR}/setup_social_network.sh remove-istio
+        kubectl wait --for=delete pod -l app=istiod --timeout=300s
+        kubectl wait --for=delete pod -l app=istio-ingressgateway --timeout=300s
+
+        # reinstall istio and workload and wait until all pods are ready
+        ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+        kubectl wait --for=condition=Ready pod -l app=istiod --timeout=300s
+        kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway --timeout=300s
+
+        ${SCRIPT_DIR}/setup_social_network.sh install-bf
+        kubectl wait --for=condition=Ready pod -l app=details --timeout=300s
+        kubectl wait --for=condition=Ready pod -l app=productpage --timeout=300s
+        kubectl wait --for=condition=Ready pod -l app=ratings --timeout=300s
+        kubectl wait --for=condition=Ready pod -l app=reviews --timeout=300s
+
+        sleep 10s
+
+        OUT_FILE="$RES_DIR/${reqs}.txt"
+        
         echo "Running for ${reqs} reqs"
-        # ../wrk2/wrk -D exp -t 1 -c 1 -d 1 -L -s ./wrk2/scripts/social-network/mixed-workload.lua http://$INGRESS_IP:$INGRESS_PORT -R ${reqs} >> results/mixed/${reqs}.txt
-        ../wrk2/wrk -D exp -t 1 -c 1 -d 1 -L -s ./wrk2/scripts/social-network/read-home-timeline.lua http://$INGRESS_IP:$INGRESS_PORT -R ${reqs} >> results/home/${reqs}.txt
+
+        wrk_args=()
+        if [[ "$keep_alive" == "false" ]]; then
+            echo "Keep alive is false"
+            wrk_args+=(-H "Connection: Close")
+        else
+            echo "Keep alive is true"
+        fi
+
+        ../wrk2/wrk -D exp -t 100 -c 100 -d ${DURATION} -L \
+            "${wrk_args[@]}" \
+            -s ./wrk2/scripts/social-network/read-productpage.lua \
+            http://$INGRESS_IP:$INGRESS_PORT -R ${reqs} >> ${OUT_FILE}
+
     done
     echo "=== All tests completed ==="
     echo "Results saved in results/mixed/"

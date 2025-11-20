@@ -149,6 +149,7 @@ if __name__ == '__main__':
   random.seed(1)   # deterministic random numbers
 
   addr = 'http://{}:{}'.format(args.ip, args.port)
+  print(addr)
   limit = args.limit
   loop = asyncio.new_event_loop()
   future = asyncio.ensure_future(register(addr, nodes, limit), loop=loop)
