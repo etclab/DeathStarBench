@@ -214,19 +214,24 @@ if [[ "$run_mixed_load" == "true" ]]; then
         kubectl wait --for=delete pod -l app=reviews --timeout=300s
 
         ${SCRIPT_DIR}/setup_social_network.sh remove-istio
-        kubectl wait --for=delete pod -l app=istiod --timeout=300s
-        kubectl wait --for=delete pod -l app=istio-ingressgateway --timeout=300s
+        kubectl wait --for=delete pod -l app=istiod -n istio-system --timeout=300s
+        kubectl wait --for=delete pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
         # reinstall istio and workload and wait until all pods are ready
-        ${SCRIPT_DIR}/setup_social_network.sh install-mazu
-        kubectl wait --for=condition=Ready pod -l app=istiod --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway --timeout=300s
+        if [[ "$STRAT" == "istio" ]]; then
+            ${SCRIPT_DIR}/setup_social_network.sh install-istio
+        else
+            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+        fi
+        kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
+        kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
         ${SCRIPT_DIR}/setup_social_network.sh install-bf
         kubectl wait --for=condition=Ready pod -l app=details --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=productpage --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=ratings --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=reviews --timeout=300s
+        kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
         sleep 10s
 
