@@ -89,7 +89,13 @@ if [[ "$install_mazu" == "true" ]]; then
     "$SCRIPT_DIR/dev/install_etcd.sh"
 
     "$ISTIOCTL_PATH" install --set profile=default --set hub=$DOCKER_HUB \
-        --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y 
+        --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y \
+        --set components.pilot.k8s.hpaSpec.maxReplicas=3 \
+        --set components.ingressGateways[0].k8s.hpaSpec.minReplicas=5 \
+        --set components.ingressGateways[0].name=istio-ingressgateway
+
+    kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
+    kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-role.yaml" 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-binding.yaml"
@@ -144,14 +150,14 @@ fi
 
 if [[ "$install_bf" == "true" ]]; then
     mazu_echo "Installing Bookinfo application..."
-    kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo.yaml
+    kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-mazu.yaml
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
 
 if [[ "$uninstall_bf" == "true" ]]; then
     mazu_echo "Uninstalling Bookinfo application..."
-    kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo.yaml
+    kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-mazu.yaml
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
@@ -204,7 +210,9 @@ if [[ "$run_mixed_load" == "true" ]]; then
 
     mkdir -p $RES_DIR
 
-    for reqs in 100 250 500 750 1000
+    # for reqs in 100 250 500 750 1000
+    # for reqs in 50 100 200 300 400 500 600 700 800 900
+    for reqs in 10
     do
         # delete istio and workload if exists
         ${SCRIPT_DIR}/setup_social_network.sh uninstall-bf
@@ -220,17 +228,28 @@ if [[ "$run_mixed_load" == "true" ]]; then
         # reinstall istio and workload and wait until all pods are ready
         if [[ "$STRAT" == "istio" ]]; then
             ${SCRIPT_DIR}/setup_social_network.sh install-istio
+        
+        elif [[ "$STRAT" == "st5-AttUpd" || "$STRAT" == "st4-AudUpd" ]]; then
+
+            ${SCRIPT_DIR}/dev/tpm/install-k8s-tpm-device.sh
+            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+
+            ${SCRIPT_DIR}/dev/tpm/deploy-tpm-secret.sh
+            ${SCRIPT_DIR}/dev/tpm/deploy-tpm-pubkey-configmap.sh
+            ${SCRIPT_DIR}/dev/tpm/patch-istiod-tpm-device.sh
+            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
+
         else
             ${SCRIPT_DIR}/setup_social_network.sh install-mazu
         fi
-        kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
         ${SCRIPT_DIR}/setup_social_network.sh install-bf
         kubectl wait --for=condition=Ready pod -l app=details --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=productpage --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=ratings --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=reviews --timeout=300s
+
+        kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
         sleep 10s
