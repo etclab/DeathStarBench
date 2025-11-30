@@ -104,8 +104,8 @@ if [[ "$install_mazu" == "true" ]]; then
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 
-    # mazu_echo "Installing Prometheus..."
-    # "$SCRIPT_DIR/scratch/install-prometheus.sh"
+    mazu_echo "Installing Prometheus..."
+    "$SCRIPT_DIR/scratch/install-kube-prometheus.sh"
 fi
 
 if [[ "$install_istio" == "true" ]]; then
@@ -123,8 +123,8 @@ if [[ "$install_istio" == "true" ]]; then
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 
-    # mazu_echo "Installing Prometheus..."
-    # "$SCRIPT_DIR/scratch/install-prometheus.sh"
+    mazu_echo "Installing Prometheus..."
+    "$SCRIPT_DIR/scratch/install-kube-prometheus.sh"
 fi
 
 if [[ "$init_social_graph" == "true" ]]; then
