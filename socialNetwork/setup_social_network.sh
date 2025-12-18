@@ -88,14 +88,86 @@ if [[ "$install_mazu" == "true" ]]; then
     mazu_echo "Installing Istio..."
     "$SCRIPT_DIR/dev/install_etcd.sh"
 
-    "$ISTIOCTL_PATH" install --set profile=default --set hub=$DOCKER_HUB \
-        --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y \
-        --set components.pilot.k8s.hpaSpec.maxReplicas=3 \
-        --set components.ingressGateways[0].k8s.hpaSpec.minReplicas=5 \
-        --set components.ingressGateways[0].name=istio-ingressgateway
+    # "$ISTIOCTL_PATH" install --set profile=default --set hub=$DOCKER_HUB \
+    #     --set tag=$DOCKER_TAG --set "values.global.imagePullPolicy=Always" -y \
+    #     --set components.pilot.k8s.hpaSpec.maxReplicas=3 \
+    #     --set components.ingressGateways[0].k8s.hpaSpec.minReplicas=5 \
+    #     --set components.ingressGateways[0].name=istio-ingressgateway
 
-    kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
-    kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
+    cat <<EOF > istio-config.yaml
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: default
+  hub: $DOCKER_HUB
+  tag: $DOCKER_TAG
+  values:
+    global:
+      imagePullPolicy: Always
+  components:
+    pilot:
+      k8s:
+        hpaSpec:
+          maxReplicas: 3
+        securityContext:
+          supplementalGroups: [116]
+        resources:
+          limits:
+            tpm.boxboat.io/tpmrm: 1
+        overlays:
+        - kind: Deployment
+          name: istiod
+          patches:
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: mazu-config-volume
+              configMap:
+                name: mazu-config
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: tpm-keys-volume
+              secret:
+                secretName: tpm-keys
+          - path: spec.template.spec.containers[name:discovery].volumeMounts[-1]
+            value:
+              name: mazu-config-volume
+              mountPath: /etc/mazu-config
+          - path: spec.template.spec.containers[name:discovery].volumeMounts[-1]
+            value:
+              name: tpm-keys-volume
+              mountPath: /etc/tpm-keys
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        hpaSpec:
+          minReplicas: 5
+          maxReplicas: 5
+        overlays:
+        - kind: Deployment
+          name: istio-ingressgateway
+          patches:
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: mazu-config-volume
+              configMap:
+                name: mazu-config
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: tpm-keys-volume
+              secret:
+                secretName: tpm-keys
+          - path: spec.template.spec.containers[name:istio-proxy].volumeMounts[-1]
+            value:
+              name: mazu-config-volume
+              mountPath: /etc/mazu-config
+          - path: spec.template.spec.containers[name:istio-proxy].volumeMounts[-1]
+            value:
+              name: tpm-keys-volume
+              mountPath: /etc/tpm-keys
+EOF
+    "$ISTIOCTL_PATH" install -f istio-config.yaml -y
+    rm istio-config.yaml
 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-role.yaml" 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-binding.yaml"
@@ -104,8 +176,15 @@ if [[ "$install_mazu" == "true" ]]; then
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 
-    mazu_echo "Installing Prometheus..."
-    "$SCRIPT_DIR/scratch/install-kube-prometheus.sh"
+    kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
+    kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
+
+    # mazu_echo "Waiting for Istiod restart..."
+    # "$SCRIPT_DIR/dev/deploy-eval-data-volume.sh"
+    # kubectl rollout status deployment/istiod -n istio-system
+
+    # mazu_echo "Installing Prometheus..."
+    # "$SCRIPT_DIR/scratch/install-kube-prometheus.sh"
 fi
 
 if [[ "$install_istio" == "true" ]]; then
@@ -123,8 +202,8 @@ if [[ "$install_istio" == "true" ]]; then
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 
-    mazu_echo "Installing Prometheus..."
-    "$SCRIPT_DIR/scratch/install-kube-prometheus.sh"
+    # mazu_echo "Installing Prometheus..."
+    # "$SCRIPT_DIR/scratch/install-kube-prometheus.sh"
 fi
 
 if [[ "$init_social_graph" == "true" ]]; then
@@ -150,14 +229,14 @@ fi
 
 if [[ "$install_bf" == "true" ]]; then
     mazu_echo "Installing Bookinfo application..."
-    kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-mazu.yaml
+    kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
 
 if [[ "$uninstall_bf" == "true" ]]; then
     mazu_echo "Uninstalling Bookinfo application..."
-    kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-mazu.yaml
+    kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
@@ -212,7 +291,7 @@ if [[ "$run_mixed_load" == "true" ]]; then
 
     # for reqs in 100 250 500 750 1000
     # for reqs in 50 100 200 300 400 500 600 700 800 900
-    for reqs in 10
+    for reqs in 1000 2000 4000 8000 12000 16000 24000 32000
     do
         # delete istio and workload if exists
         ${SCRIPT_DIR}/setup_social_network.sh uninstall-bf
@@ -229,18 +308,20 @@ if [[ "$run_mixed_load" == "true" ]]; then
         if [[ "$STRAT" == "istio" ]]; then
             ${SCRIPT_DIR}/setup_social_network.sh install-istio
         
-        elif [[ "$STRAT" == "st5-AttUpd" || "$STRAT" == "st4-AudUpd" ]]; then
-
+        elif [[ "$STRAT" == "st5-AttUpd" ]]; then
             ${SCRIPT_DIR}/dev/tpm/install-k8s-tpm-device.sh
             ${SCRIPT_DIR}/setup_social_network.sh install-mazu
 
-            ${SCRIPT_DIR}/dev/tpm/deploy-tpm-secret.sh
             ${SCRIPT_DIR}/dev/tpm/deploy-tpm-pubkey-configmap.sh
-            ${SCRIPT_DIR}/dev/tpm/patch-istiod-tpm-device.sh
+            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
+
+        elif [[ "$STRAT" == "st4-AudUpd" ]]; then
+            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
             ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
 
         else
             ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+            # ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
         fi
 
         ${SCRIPT_DIR}/setup_social_network.sh install-bf
