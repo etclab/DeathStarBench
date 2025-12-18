@@ -1,0 +1,3 @@
+#metric               min_ready_time       max_ready_time      
+#                     mean       std        mean       std       
+pods-25              22977376.44 1209016.5826298345                 23139712.84 1264498.0262910877
