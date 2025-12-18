@@ -1,0 +1,50 @@
+##################################################################################################
+# agnhost service
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: agnhost
+  labels:
+    app: agnhost
+    service: agnhost
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: agnhost
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agnhost
+  labels:
+    account: agnhost
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agnhost-v1
+  labels:
+    app: agnhost
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agnhost
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: agnhost
+        version: v1
+    spec:
+      serviceAccountName: agnhost
+      containers:
+      - name: agnhost
+        image: registry.k8s.io/e2e-test-images/agnhost:2.53
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080

@@ -65,6 +65,9 @@ spec:
       version: v1
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true}]'
       labels:
         app: details
         version: v1
@@ -123,6 +126,9 @@ spec:
       version: v1
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true}]'
       labels:
         app: ratings
         version: v1
@@ -181,6 +187,9 @@ spec:
       version: v1
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true}]'
       labels:
         app: reviews
         version: v1
@@ -228,6 +237,9 @@ spec:
       version: v2
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true}]'
       labels:
         app: reviews
         version: v2
@@ -275,6 +287,9 @@ spec:
       version: v3
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true}]'
       labels:
         app: reviews
         version: v3
@@ -350,6 +365,8 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9080"
         prometheus.io/path: "/metrics"
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true}]'
       labels:
         app: productpage
         version: v1
