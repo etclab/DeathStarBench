@@ -34,34 +34,34 @@ for NAMESPACE in ${NAMESPACES[@]}; do
 
 done
 
-kubectl -n istio-system patch deployment istiod --type='strategic' -p='
-spec:
-  template:
-    spec:
-      volumes:
-        - name: mazu-config-volume
-          configMap:
-            name: mazu-config
-      containers:
-        - name: discovery
-          volumeMounts:
-            - name: mazu-config-volume
-              mountPath: /etc/mazu-config
-              readOnly: true
-'
+# kubectl -n istio-system patch deployment istiod --type='strategic' -p='
+# spec:
+#   template:
+#     spec:
+#       volumes:
+#         - name: mazu-config-volume
+#           configMap:
+#             name: mazu-config
+#       containers:
+#         - name: discovery
+#           volumeMounts:
+#             - name: mazu-config-volume
+#               mountPath: /etc/mazu-config
+#               readOnly: true
+# '
 
-kubectl -n istio-system patch deployment istio-ingressgateway --type='strategic' -p='
-spec:
-  template:
-    spec:
-      volumes:
-        - name: mazu-config-volume
-          configMap:
-            name: mazu-config
-      containers:
-        - name: istio-proxy
-          volumeMounts:
-            - name: mazu-config-volume
-              mountPath: /etc/mazu-config
-              readOnly: true
-'
+# kubectl -n istio-system patch deployment istio-ingressgateway --type='strategic' -p='
+# spec:
+#   template:
+#     spec:
+#       volumes:
+#         - name: mazu-config-volume
+#           configMap:
+#             name: mazu-config
+#       containers:
+#         - name: istio-proxy
+#           volumeMounts:
+#             - name: mazu-config-volume
+#               mountPath: /etc/mazu-config
+#               readOnly: true
+# '

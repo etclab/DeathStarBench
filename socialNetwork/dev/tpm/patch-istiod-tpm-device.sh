@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # patch istiod to use the TPM device resource
+echo "Patching istiod deployment to use TPM device resource..."
 
 # 116 is the group id of tss
 kubectl -n istio-system patch deployment istiod --type='strategic' --patch '

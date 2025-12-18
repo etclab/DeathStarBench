@@ -122,11 +122,14 @@ if [[ "$setup_libs" == "true" ]]; then
 fi
 
 if [[ "$create_tpm" == "true" ]]; then
+    # cleanup existing tpm
+    sudo pkill swtpm_cuse || true
+    sudo rm -rf /dev/tpmrm0
 
-    mecho "Creating tpm state folder in /tpm/myvtpm2"
     sudo rm -rf /tmp/myvtpm2
     sudo rm -rf /tmp/swtpm_cuse.log
 
+    mecho "Creating tpm state folder in /tpm/myvtpm2"
     sudo mkdir -p /tmp/myvtpm2
     sudo chown tss:root /tmp/myvtpm2
 
