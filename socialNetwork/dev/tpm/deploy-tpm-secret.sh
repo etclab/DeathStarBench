@@ -7,37 +7,37 @@ kubectl create secret generic tpm-keys \
   --from-file=publicKey=${SCRIPT_DIR}/test-keys/pk.key \
   -n istio-system
 
-kubectl -n istio-system patch deployment istiod --type='strategic' -p='
-spec:
-  template:
-    spec:
-      volumes:
-        - name: tpm-keys-volume
-          secret:
-            secretName: tpm-keys
-      containers:
-        - name: discovery
-          volumeMounts:
-            - name: tpm-keys-volume
-              mountPath: /etc/tpm-keys
-              readOnly: true
-'
+# kubectl -n istio-system patch deployment istiod --type='strategic' -p='
+# spec:
+#   template:
+#     spec:
+#       volumes:
+#         - name: tpm-keys-volume
+#           secret:
+#             secretName: tpm-keys
+#       containers:
+#         - name: discovery
+#           volumeMounts:
+#             - name: tpm-keys-volume
+#               mountPath: /etc/tpm-keys
+#               readOnly: true
+# '
 
-kubectl -n istio-system patch deployment istio-ingressgateway --type='strategic' -p='
-spec:
-  template:
-    spec:
-      volumes:
-        - name: tpm-pubkey-volume
-          configMap:
-            name: tpm-pubkey
-      containers:
-        - name: istio-proxy
-          volumeMounts:
-            - name: tpm-pubkey-volume
-              mountPath: /etc/tpm-keys
-              readOnly: true
-'
+# kubectl -n istio-system patch deployment istio-ingressgateway --type='strategic' -p='
+# spec:
+#   template:
+#     spec:
+#       volumes:
+#         - name: tpm-pubkey-volume
+#           configMap:
+#             name: tpm-pubkey
+#       containers:
+#         - name: istio-proxy
+#           volumeMounts:
+#             - name: tpm-pubkey-volume
+#               mountPath: /etc/tpm-keys
+#               readOnly: true
+# '
 
 
 # kubectl get deployments istiod -n istio-system -o yaml > istiod-deploy.yaml

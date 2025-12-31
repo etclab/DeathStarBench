@@ -1,0 +1,65 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: default
+  hub: $DOCKER_HUB
+  tag: $DOCKER_TAG
+  values:
+    global:
+      imagePullPolicy: Always
+  components:
+    pilot:
+      k8s:
+        hpaSpec:
+          maxReplicas: 1
+        overlays:
+        - kind: Deployment
+          name: istiod
+          patches:
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: mazu-config-volume
+              configMap:
+                name: mazu-config
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: rbe-pp-volume
+              configMap:
+                name: rbe-pp
+          - path: spec.template.spec.containers[name:discovery].volumeMounts[-1]
+            value:
+              name: mazu-config-volume
+              mountPath: /etc/mazu-config
+          - path: spec.template.spec.containers[name:discovery].volumeMounts[-1]
+            value:
+              name: rbe-pp-volume
+              mountPath: /var/run/rbe-pp
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        hpaSpec:
+          minReplicas: 5
+          maxReplicas: 10
+        overlays:
+        - kind: Deployment
+          name: istio-ingressgateway
+          patches:
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: mazu-config-volume
+              configMap:
+                name: mazu-config
+          - path: spec.template.spec.volumes[-1]
+            value:
+              name: rbe-pp-volume
+              configMap:
+                name: rbe-pp
+          - path: spec.template.spec.containers[name:istio-proxy].volumeMounts[-1]
+            value:
+              name: mazu-config-volume
+              mountPath: /etc/mazu-config
+          - path: spec.template.spec.containers[name:istio-proxy].volumeMounts[-1]
+            value:
+              name: rbe-pp-volume
+              mountPath: /var/run/rbe-pp

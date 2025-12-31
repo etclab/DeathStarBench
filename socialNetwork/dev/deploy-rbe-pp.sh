@@ -12,6 +12,9 @@ for NAMESPACE in ${NAMESPACES[@]}; do
 
   kubectl create configmap rbe-pp \
     --from-file=${SCRIPT_DIR}/rbe-pp.txt \
+    --from-file=${SCRIPT_DIR}/rbe-pp-only.txt \
+    --from-file=${SCRIPT_DIR}/rbe-crs-h1.txt \
+    --from-file=${SCRIPT_DIR}/rbe-crs-h2.txt \
     -n ${NAMESPACE}
 done
 

@@ -6,13 +6,15 @@ mazu_echo() {
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
 
+STRAT=${STRAT:-"st3-TokRev"}
+
 echo $SCRIPT_DIR
 
 get_ingress_ip_port () {
     INGRESS_NAME=istio-ingressgateway
     INGRESS_NS=istio-system
-    INGRESS_IP=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-    INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+    export INGRESS_IP=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    export INGRESS_PORT=$(kubectl -n "$INGRESS_NS" get service "$INGRESS_NAME" -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
 }
 
 init_social_graph=false
@@ -73,9 +75,9 @@ if [[ "$remove_istio" == "true" ]]; then
 fi
 
 if [[ "$install_mazu" == "true" ]]; then
-    DOCKER_HUB=docker.io/atosh502 
+    export DOCKER_HUB=docker.io/atosh502 
     # DOCKER_TAG=st3-TokRev
-    DOCKER_TAG=atosh502
+    export DOCKER_TAG=atosh502
 
     if [ ! -x "$ISTIOCTL_PATH" ]; then
         mazu_echo "Installing istioctl..."
@@ -94,80 +96,15 @@ if [[ "$install_mazu" == "true" ]]; then
     #     --set components.ingressGateways[0].k8s.hpaSpec.minReplicas=5 \
     #     --set components.ingressGateways[0].name=istio-ingressgateway
 
-    cat <<EOF > istio-config.yaml
-apiVersion: install.istio.io/v1alpha1
-kind: IstioOperator
-spec:
-  profile: default
-  hub: $DOCKER_HUB
-  tag: $DOCKER_TAG
-  values:
-    global:
-      imagePullPolicy: Always
-  components:
-    pilot:
-      k8s:
-        hpaSpec:
-          maxReplicas: 3
-        securityContext:
-          supplementalGroups: [116]
-        resources:
-          limits:
-            tpm.boxboat.io/tpmrm: 1
-        overlays:
-        - kind: Deployment
-          name: istiod
-          patches:
-          - path: spec.template.spec.volumes[-1]
-            value:
-              name: mazu-config-volume
-              configMap:
-                name: mazu-config
-          - path: spec.template.spec.volumes[-1]
-            value:
-              name: tpm-keys-volume
-              secret:
-                secretName: tpm-keys
-          - path: spec.template.spec.containers[name:discovery].volumeMounts[-1]
-            value:
-              name: mazu-config-volume
-              mountPath: /etc/mazu-config
-          - path: spec.template.spec.containers[name:discovery].volumeMounts[-1]
-            value:
-              name: tpm-keys-volume
-              mountPath: /etc/tpm-keys
-    ingressGateways:
-    - name: istio-ingressgateway
-      enabled: true
-      k8s:
-        hpaSpec:
-          minReplicas: 5
-          maxReplicas: 5
-        overlays:
-        - kind: Deployment
-          name: istio-ingressgateway
-          patches:
-          - path: spec.template.spec.volumes[-1]
-            value:
-              name: mazu-config-volume
-              configMap:
-                name: mazu-config
-          - path: spec.template.spec.volumes[-1]
-            value:
-              name: tpm-keys-volume
-              secret:
-                secretName: tpm-keys
-          - path: spec.template.spec.containers[name:istio-proxy].volumeMounts[-1]
-            value:
-              name: mazu-config-volume
-              mountPath: /etc/mazu-config
-          - path: spec.template.spec.containers[name:istio-proxy].volumeMounts[-1]
-            value:
-              name: tpm-keys-volume
-              mountPath: /etc/tpm-keys
-EOF
-    "$ISTIOCTL_PATH" install -f istio-config.yaml -y
-    rm istio-config.yaml
+    # create istio install config file using envsubst to set hub and tag
+    if [[ "$STRAT" == "st5-AttUpd" ]]; then
+      envsubst '$DOCKER_HUB $DOCKER_TAG' < ${SCRIPT_DIR}/scratch/yaml/istio-operator-tpm.yaml > istio-install-config.yaml
+    else
+      envsubst '$DOCKER_HUB $DOCKER_TAG' < ${SCRIPT_DIR}/scratch/yaml/istio-operator.yaml > istio-install-config.yaml
+    fi
+    
+    "$ISTIOCTL_PATH" install -f istio-install-config.yaml -y
+    # rm istio-install-config.yaml
 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-role.yaml" 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-binding.yaml"
@@ -229,14 +166,24 @@ fi
 
 if [[ "$install_bf" == "true" ]]; then
     mazu_echo "Installing Bookinfo application..."
-    kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml
+    if [[ "$STRAT" == "st5-AttUpd" ]]; then
+      kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-const-tpm.yaml
+    else 
+      kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml
+    #   kubectl apply -f $SCRIPT_DIR/scratch/yaml/bookinfo-mazu.yaml
+    fi
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
 
 if [[ "$uninstall_bf" == "true" ]]; then
     mazu_echo "Uninstalling Bookinfo application..."
-    kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml
+    if [[ "$STRAT" == "st5-AttUpd" ]]; then
+      kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-const-tpm.yaml
+    else 
+      kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml
+    #   kubectl delete -f $SCRIPT_DIR/scratch/yaml/bookinfo-mazu.yaml
+    fi
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-gateway.yaml
     kubectl delete -f $SCRIPT_DIR/scratch/yaml/bf-hpa.yaml
 fi
@@ -282,7 +229,6 @@ if [[ "$run_mixed_load" == "true" ]]; then
     get_ingress_ip_port
 
     DURATION=${DURATION:-60}
-    STRAT=${STRAT:-"st3-TokRev"}
 
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
     RES_DIR="results/productpage/${TIMESTAMP}/${STRAT}-${DURATION}"
@@ -291,7 +237,12 @@ if [[ "$run_mixed_load" == "true" ]]; then
 
     # for reqs in 100 250 500 750 1000
     # for reqs in 50 100 200 300 400 500 600 700 800 900
-    for reqs in 1000 2000 4000 8000 12000 16000 24000 32000
+    # for reqs in 1000 2000 4000 8000 12000 16000 24000 32000
+    # for reqs in 1000 2000 4000 8000 
+    for reqs in 1000
+    # for reqs in 500 750 1000 1500 2000 2500 3000 3500 4000
+    # for reqs in 12000 16000 24000 32000
+    # for reqs in 12000
     do
         # delete istio and workload if exists
         ${SCRIPT_DIR}/setup_social_network.sh uninstall-bf
@@ -307,21 +258,22 @@ if [[ "$run_mixed_load" == "true" ]]; then
         # reinstall istio and workload and wait until all pods are ready
         if [[ "$STRAT" == "istio" ]]; then
             ${SCRIPT_DIR}/setup_social_network.sh install-istio
-        
-        elif [[ "$STRAT" == "st5-AttUpd" ]]; then
-            ${SCRIPT_DIR}/dev/tpm/install-k8s-tpm-device.sh
-            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
 
-            ${SCRIPT_DIR}/dev/tpm/deploy-tpm-pubkey-configmap.sh
-            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
+        else 
+          ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
+          ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
 
-        elif [[ "$STRAT" == "st4-AudUpd" ]]; then
-            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
-            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
+          if [[ "$STRAT" == "st5-AttUpd" ]]; then
+              ${SCRIPT_DIR}/dev/tpm/install-k8s-tpm-device.sh
+              ${SCRIPT_DIR}/dev/tpm/deploy-tpm-pubkey-configmap.sh
+              ${SCRIPT_DIR}/dev/tpm/deploy-tpm-secret.sh
 
-        else
-            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
-            # ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh $STRAT
+              ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+
+          else
+              # for: st2-NIChaRes, st3-TokRev, st4-AudUpd
+              ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+          fi
         fi
 
         ${SCRIPT_DIR}/setup_social_network.sh install-bf
@@ -332,8 +284,6 @@ if [[ "$run_mixed_load" == "true" ]]; then
 
         kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
-
-        sleep 10s
 
         OUT_FILE="$RES_DIR/${reqs}.txt"
         
@@ -347,7 +297,7 @@ if [[ "$run_mixed_load" == "true" ]]; then
             echo "Keep alive is true"
         fi
 
-        ../wrk2/wrk -D exp -t 100 -c 100 -d ${DURATION} -L \
+        ../wrk2/wrk -D exp -t 16 -c 128 -d ${DURATION} -L \
             "${wrk_args[@]}" \
             -s ./wrk2/scripts/social-network/read-productpage.lua \
             http://$INGRESS_IP:$INGRESS_PORT -R ${reqs} >> ${OUT_FILE}
