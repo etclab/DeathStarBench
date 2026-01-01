@@ -37,3 +37,5 @@ for NODE in "${NODES[@]}"; do
     -o UserKnownHostsFile=/dev/null \
     apoudel@${NODE}.${DOMAIN} "${COMMAND}"
 done
+
+# ./setup-tpm-all-nodes.sh -d wisc.cloudlab.us c220g1-031127 c220g1-031130 c220g1-031122 c220g1-031124

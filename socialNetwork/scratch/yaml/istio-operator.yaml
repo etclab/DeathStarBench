@@ -7,9 +7,17 @@ spec:
   values:
     global:
       imagePullPolicy: Always
+    telemetry:
+      enabled: false
+      v2:
+        enabled: false
   components:
     pilot:
       k8s:
+        resources:
+          requests:
+            cpu: "2000m"
+            memory: "2Gi"
         hpaSpec:
           maxReplicas: 1
         overlays:
