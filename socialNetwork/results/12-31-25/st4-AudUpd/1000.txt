@@ -1,0 +1,383 @@
+Running 4m test @ http://128.105.146.151:80
+  16 threads and 128 connections
+
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+  Thread calibration: mean lat.: 4849.608ms, rate sampling interval: 15081ms
+  Thread calibration: mean lat.: 4741.639ms, rate sampling interval: 13467ms
+  Thread calibration: mean lat.: 4881.432ms, rate sampling interval: 14958ms
+  Thread calibration: mean lat.: 4624.873ms, rate sampling interval: 13877ms
+  Thread calibration: mean lat.: 4987.867ms, rate sampling interval: 14376ms
+  Thread calibration: mean lat.: 4839.402ms, rate sampling interval: 14123ms
+  Thread calibration: mean lat.: 3678.349ms, rate sampling interval: 12582ms
+  Thread calibration: mean lat.: 4518.827ms, rate sampling interval: 13623ms
+  Thread calibration: mean lat.: 4934.560ms, rate sampling interval: 14581ms
+  Thread calibration: mean lat.: 5081.586ms, rate sampling interval: 14737ms
+  Thread calibration: mean lat.: 4889.729ms, rate sampling interval: 14090ms
+  Thread calibration: mean lat.: 4802.437ms, rate sampling interval: 14024ms
+  Thread calibration: mean lat.: 4794.561ms, rate sampling interval: 14860ms
+  Thread calibration: mean lat.: 4781.256ms, rate sampling interval: 13590ms
+  Thread calibration: mean lat.: 4490.598ms, rate sampling interval: 13361ms
+  Thread calibration: mean lat.: 4941.536ms, rate sampling interval: 14819ms
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+reconnect_socket
+
+-----------------------------------------------------------------------
+Test Results @ http://128.105.146.151:80 
+  Thread Stats   Avg      Stdev     99%   +/- Stdev
+    Latency    50.43s    10.01s    1.15m    78.83%
+    Req/Sec    50.10     27.11    97.00     51.78%
+  Latency Distribution (HdrHistogram - Recorded Latency)
+ 50.000%   50.63s 
+ 75.000%    0.93m 
+ 90.000%    1.04m 
+ 99.000%    1.15m 
+ 99.900%    1.20m 
+ 99.990%    1.23m 
+ 99.999%    1.25m 
+100.000%    1.25m 
+
+  Detailed Percentile spectrum:
+       Value   Percentile   TotalCount 1/(1-Percentile)
+
+    5054.463     0.000000            1         1.00
+   42336.255     0.100000        18781         1.11
+   45678.591     0.200000        37701         1.25
+   47448.063     0.300000        56275         1.43
+   49053.695     0.400000        75324         1.67
+   50626.559     0.500000        93910         2.00
+   51445.759     0.550000       103300         2.22
+   52330.495     0.600000       112709         2.50
+   53247.999     0.650000       121906         2.86
+   54329.343     0.700000       131397         3.33
+   55705.599     0.750000       140664         4.00
+   56524.799     0.775000       145379         4.44
+   57475.071     0.800000       150044         5.00
+   58523.647     0.825000       154682         5.71
+   59834.367     0.850000       159362         6.67
+   61112.319     0.875000       164029         8.00
+   61767.679     0.887500       166342         8.89
+   62521.343     0.900000       168741        10.00
+   63209.471     0.912500       171023        11.43
+   63995.903     0.925000       173393        13.33
+   64782.335     0.937500       175684        16.00
+   65208.319     0.943750       176877        17.78
+   65601.535     0.950000       178026        20.00
+   66027.519     0.956250       179240        22.86
+   66387.967     0.962500       180382        26.67
+   66813.951     0.968750       181600        32.00
+   67043.327     0.971875       182123        35.56
+   67305.471     0.975000       182726        40.00
+   67633.151     0.978125       183402        45.71
+   67895.295     0.981250       183902        53.33
+   68222.975     0.984375       184558        64.00
+   68354.047     0.985938       184769        71.11
+   68550.655     0.987500       185113        80.00
+   68747.263     0.989062       185376        91.43
+   69009.407     0.990625       185693       106.67
+   69337.087     0.992188       185943       128.00
+   69533.695     0.992969       186096       142.22
+   69730.303     0.993750       186261       160.00
+   69861.375     0.994531       186367       182.86
+   70123.519     0.995313       186544       213.33
+   70320.127     0.996094       186670       256.00
+   70516.735     0.996484       186762       284.44
+   70582.271     0.996875       186803       320.00
+   70778.879     0.997266       186891       365.71
+   71041.023     0.997656       186971       426.67
+   71172.095     0.998047       187024       512.00
+   71303.167     0.998242       187078       568.89
+   71368.703     0.998437       187099       640.00
+   71499.775     0.998633       187133       731.43
+   71630.847     0.998828       187173       853.33
+   71761.919     0.999023       187207      1024.00
+   71892.991     0.999121       187226      1137.78
+   72024.063     0.999219       187245      1280.00
+   72286.207     0.999316       187268      1462.86
+   72351.743     0.999414       187278      1706.67
+   72613.887     0.999512       187299      2048.00
+   72744.959     0.999561       187308      2275.56
+   72810.495     0.999609       187314      2560.00
+   73007.103     0.999658       187325      2925.71
+   73138.175     0.999707       187333      3413.33
+   73465.855     0.999756       187346      4096.00
+   73465.855     0.999780       187346      4551.11
+   73531.391     0.999805       187352      5120.00
+   73662.463     0.999829       187356      5851.43
+   73793.535     0.999854       187360      6826.67
+   73924.607     0.999878       187368      8192.00
+   73924.607     0.999890       187368      9102.22
+   73990.143     0.999902       187370     10240.00
+   74055.679     0.999915       187372     11702.86
+   74186.751     0.999927       187374     13653.33
+   74252.287     0.999939       187376     16384.00
+   74317.823     0.999945       187377     18204.44
+   74514.431     0.999951       187378     20480.00
+   74579.967     0.999957       187382     23405.71
+   74579.967     0.999963       187382     27306.67
+   74579.967     0.999969       187382     32768.00
+   74579.967     0.999973       187382     36408.89
+   74645.503     0.999976       187383     40960.00
+   74645.503     0.999979       187383     46811.43
+   74776.575     0.999982       187385     54613.33
+   74776.575     0.999985       187385     65536.00
+   74776.575     0.999986       187385     72817.78
+   74776.575     0.999988       187385     81920.00
+   74776.575     0.999989       187385     93622.86
+   74842.111     0.999991       187386    109226.67
+   74842.111     0.999992       187386    131072.00
+   74842.111     0.999993       187386    145635.56
+   74842.111     0.999994       187386    163840.00
+   74842.111     0.999995       187386    187245.71
+   74907.647     0.999995       187387    218453.33
+   74907.647     1.000000       187387          inf
+#[Mean    =    50431.903, StdDeviation   =    10006.910]
+#[Max     =    74842.112, Total count    =       187387]
+#[Buckets =           27, SubBuckets     =         2048]
+-----------------------------------------------------------------------
+  189684 requests in 4.00m, 2.47GB read
+  Socket errors: connect 0, read 154, write 91, timeout 0
+  Non-2xx or 3xx responses: 9
+Requests/sec:    790.29  
+Transfer/sec:     10.54MB
