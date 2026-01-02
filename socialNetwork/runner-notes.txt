@@ -1,0 +1,20 @@
+- get the kubectl config file from four-node cluster's root node: .kube/config
+    - need to update the url to the external ip of node-0
+- setup kubectl, helm, and istioctl to use this config
+- kubectl and helm uses the config from .kube/config by default
+- for istioctl needs to be specified explicitly: `istioctl install --kubeconfig ~/.kube/config`
+
+- helm install
+```
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+- istioctl install
+```
+cd $HOME
+curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.24.0 TARGET_ARCH=x86_64 sh -
+export PATH=$HOME/.istioctl/bin:$PATH  # apply for current shell
+cd -
+```

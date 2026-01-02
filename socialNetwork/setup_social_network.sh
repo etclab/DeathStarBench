@@ -83,7 +83,7 @@ if [[ "$build_wrk2" == "true" ]]; then
 fi
 
 if [[ "$remove_istio" == "true" ]]; then
-    "$ISTIOCTL_PATH" uninstall -y --purge
+    "$ISTIOCTL_PATH" uninstall -y --purge --kubeconfig ~/.kube/config
     kubectl delete lease istiod-key-curator-leader -n istio-system
     kubectl wait --for=delete leases.coordination.k8s.io istiod-key-curator-leader -n istio-system --timeout=300s
 fi
@@ -110,7 +110,7 @@ if [[ "$install_mazu" == "true" ]]; then
       envsubst '$DOCKER_HUB $DOCKER_TAG' < ${SCRIPT_DIR}/scratch/yaml/istio-operator.yaml > istio-install-config.yaml
     fi
     
-    "$ISTIOCTL_PATH" install -f istio-install-config.yaml -y
+    "$ISTIOCTL_PATH" install -f istio-install-config.yaml -y --kubeconfig ~/.kube/config
     # rm istio-install-config.yaml
 
     kubectl apply -f "$SCRIPT_DIR/dev/token-review-role.yaml" 
@@ -136,7 +136,7 @@ if [[ "$install_istio" == "true" ]]; then
     fi
 
     mazu_echo "Installing Istio..."
-    "$ISTIOCTL_PATH" install --set profile=default -y
+    "$ISTIOCTL_PATH" install --set profile=default -y --kubeconfig ~/.kube/config
     kubectl label namespace default istio-injection=enabled --overwrite
     kubectl apply -f $SCRIPT_DIR/scratch/yaml/mtls.yaml
 

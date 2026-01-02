@@ -3,10 +3,13 @@
 # runs the benchmark for each strategies: istio, st2-NIChaRes, st3-TokRev, st4-AudUpd, st5-AttUpd
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RESULTS_DIR="$SCRIPT_DIR/results/12-31-25"
+RESULTS_DIR="$SCRIPT_DIR/results/01-01-26"
 
-STRATEGIES=("istio" "st2-NIChaRes" "st3-TokRev" "st4-AudUpd" "st5-AttUpd")
-RPS_VALUES=(500 750 1000 1250 1500 2000 3000 4000)
+# STRATEGIES=("istio" "st2-NIChaRes" "st3-TokRev" "st4-AudUpd" "st5-AttUpd")
+STRATEGIES=("istio")
+# RPS_VALUES=(500 750 1000 1250 1500 2000 3000 4000)
+# RPS_VALUES=(1000 2000 4000 8000 12000 16000 24000 32000)
+RPS_VALUES=(1000)
 DURATION=240
 
 mkdir -p "$RESULTS_DIR"
