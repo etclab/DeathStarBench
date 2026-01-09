@@ -5,11 +5,12 @@ import re
 # Percentile lookup strings in the detailed spectrum
 PERCENTILE_MAP = {
     50: "0.500000",
+    90: "0.900000",
     99: "0.990625"  # Close to 99%
 }
 
 LIST_OF_STRATEGIES = ['istio', 'st2-NIChaRes', 'st3-TokRev', 'st4-AudUpd', 'st5-AttUpd']
-LIST_OF_RPS = [1000, 2000, 4000, 8000, 12000, 16000, 24000, 32000]
+LIST_OF_RPS = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
 def get_percentile(filename, lookup):
     """Extract latency value for a given percentile from wrk2 output."""
@@ -50,7 +51,7 @@ def convert_to_dat(files, filename='out.dat', percentile=99):
 def get_cli_args():
     parser = argparse.ArgumentParser(description="Parse wrk2 output files and generate gnuplot data")
     parser.add_argument("-o", "--out", required=True, help="File to output data")
-    parser.add_argument("-p", "--percentile", type=int, choices=[50, 99], default=99,
+    parser.add_argument("-p", "--percentile", type=int, choices=[50, 99, 90], default=99,
                         help="Percentile to extract (50 or 99, default: 99)")
     args = parser.parse_args()
     return args
@@ -71,7 +72,7 @@ if __name__ == "__main__":
 
     percentile_str = PERCENTILE_MAP[args.percentile]
 
-    # Local directories in 12-31-25
+    # Local directories
     filepaths = LIST_OF_STRATEGIES
     files = {}
 
