@@ -29,6 +29,7 @@ for NAMESPACE in ${NAMESPACES[@]}; do
   kubectl create configmap mazu-config \
     --from-literal=MAZU_ATTESTATION_ENABLED=$is_attestation_enabled \
     --from-literal=MAZU_RBE_PROOF_ENABLED=$is_rbe_proof_enabled \
+    --from-literal=MAZU_ON_DEMAND_ENABLED=true \
     -n ${NAMESPACE} \
     --dry-run=client -o yaml | kubectl apply -f -
 

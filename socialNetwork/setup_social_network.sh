@@ -233,6 +233,14 @@ if [[ "$run_mixed_load" == "true" ]]; then
     kubectl wait --for=delete pod -l app=istiod -n istio-system --timeout=300s
     kubectl wait --for=delete pod -l app=istio-ingressgateway -n istio-system --timeout=300s
 
+    # freshly create TPMs on all nodes for the new run
+    mazu_echo "Creating TPMs on all nodes..."
+    for node in node-0 node-1 node-2 node-3; do
+        ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" &
+    done
+    wait
+    mazu_echo "TPMs created on all nodes"
+
     sleep 10s
 
     # reinstall istio and workload and wait until all pods are ready

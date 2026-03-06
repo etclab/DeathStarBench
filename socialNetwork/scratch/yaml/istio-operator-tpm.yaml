@@ -61,7 +61,7 @@ spec:
       k8s:
         hpaSpec:
           minReplicas: 5
-          maxReplicas: 10
+          maxReplicas: 5
         overlays:
         - kind: Deployment
           name: istio-ingressgateway
