@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
 STRATEGIES=(${STRATEGIES:-"st5-AttUpd"})
 # RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
-RPS_VALUES=(${RPS_VALUES:-60})
+RPS_VALUES=(${RPS_VALUES:-60 80 100})
 # RPS_VALUES=(${RPS_VALUES:-20})
 DURATION=${DURATION:-240}
 # DURATION=${DURATION:-60}
@@ -73,70 +73,78 @@ for STRAT in "${STRATEGIES[@]}"; do
         exec > >(tee -a "$LOG_FILE") 2>&1
 
         export STRAT
+        export DURATION
+        
         echo "=== Benchmark 1.5 started at $(date) for $STRAT ==="
-
-        # ---- Teardown previous workload & Istio ----
-        ${SCRIPT_DIR}/setup_social_network.sh uninstall-bf
-        kubectl wait --for=delete pod -l app=details --timeout=300s 2>/dev/null || true
-        kubectl wait --for=delete pod -l app=productpage --timeout=300s 2>/dev/null || true
-        kubectl wait --for=delete pod -l app=ratings --timeout=300s 2>/dev/null || true
-        kubectl wait --for=delete pod -l app=reviews --timeout=300s 2>/dev/null || true
-
-        ${SCRIPT_DIR}/setup_social_network.sh remove-istio
-        kubectl wait --for=delete pod -l app=istiod -n istio-system --timeout=300s 2>/dev/null || true
-        kubectl wait --for=delete pod -l app=istio-ingressgateway -n istio-system --timeout=300s 2>/dev/null || true
-
-        # ---- Create fresh TPMs ----
-        echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@c220g1-031118.wisc.cloudlab.us"
-        ssh "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
-        echo "TPMs created on all nodes"
-
-        sleep 60s
-
-        # ---- Install Istio / Mazu ----
-        if [[ "$STRAT" == "istio" ]]; then
-            ${SCRIPT_DIR}/setup_social_network.sh install-istio
-        else
-            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
-            ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
-
-            if [[ "$STRAT" == "st5-AttUpd" ]]; then
-                ${SCRIPT_DIR}/dev/tpm/install-k8s-tpm-device.sh
-                ${SCRIPT_DIR}/dev/tpm/deploy-tpm-pubkey-configmap.sh
-                ${SCRIPT_DIR}/dev/tpm/deploy-tpm-secret.sh
-            fi
-
-            ${SCRIPT_DIR}/setup_social_network.sh install-mazu
-        fi
-
-        # ---- Install Bookinfo WITHOUT HPA ----
-        # We apply bookinfo + gateway but skip bf-hpa.yaml for steady state
-        if [[ "$STRAT" == "st5-AttUpd" ]]; then
-            kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const-tpm.yaml"
-        else
-            kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml"
-        fi
-        kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-gateway.yaml"
-
-        # ---- Disable connection reuse via DestinationRules ----
-        # Forces maxRequestsPerConnection=1 so every request gets a new connection
-        kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-no-connection-reuse.yaml"
-
-        kubectl wait --for=condition=Ready pod -l app=details --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=productpage --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=ratings --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=reviews --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
-        kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
-
-        # ---- Fetch ingress ----
-        get_ingress_ip_port
-        echo "Ingress: ${INGRESS_IP}:${INGRESS_PORT}"
 
         # ---- RPS sweep ----
         for RPS in "${RPS_VALUES[@]}"; do
             echo "--- Running RPS=$RPS for ${DURATION}s ---"
+
+            export RPS
+
+            # ---- Teardown previous workload & Istio ----
+            ${SCRIPT_DIR}/setup_social_network.sh uninstall-bf
+            kubectl wait --for=delete pod -l app=details --timeout=300s 2>/dev/null || true
+            kubectl wait --for=delete pod -l app=productpage --timeout=300s 2>/dev/null || true
+            kubectl wait --for=delete pod -l app=ratings --timeout=300s 2>/dev/null || true
+            kubectl wait --for=delete pod -l app=reviews --timeout=300s 2>/dev/null || true
+
+            ${SCRIPT_DIR}/setup_social_network.sh remove-istio
+            kubectl wait --for=delete pod -l app=istiod -n istio-system --timeout=300s 2>/dev/null || true
+            kubectl wait --for=delete pod -l app=istio-ingressgateway -n istio-system --timeout=300s 2>/dev/null || true
+
+            # delete kube-apiserver between runs
+            kubectl -n kube-system delete pods -l component=kube-apiserver
+            kubectl -n kube-system wait --for=condition=Ready pods -l component=kube-apiserver --timeout=300s
+
+            # ---- Create fresh TPMs ----
+            echo "Creating TPMs on all nodes..."
+            NODE0="apoudel@c220g1-031118.wisc.cloudlab.us"
+            ssh "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
+            echo "TPMs created on all nodes"
+
+            sleep 60s
+
+            # ---- Install Istio / Mazu ----
+            if [[ "$STRAT" == "istio" ]]; then
+                ${SCRIPT_DIR}/setup_social_network.sh install-istio
+            else
+                ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
+                ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
+
+                if [[ "$STRAT" == "st5-AttUpd" ]]; then
+                    ${SCRIPT_DIR}/dev/tpm/install-k8s-tpm-device.sh
+                    ${SCRIPT_DIR}/dev/tpm/deploy-tpm-pubkey-configmap.sh
+                    ${SCRIPT_DIR}/dev/tpm/deploy-tpm-secret.sh
+                fi
+
+                ${SCRIPT_DIR}/setup_social_network.sh install-mazu
+            fi
+
+            # ---- Install Bookinfo WITHOUT HPA ----
+            # We apply bookinfo + gateway but skip bf-hpa.yaml for steady state
+            if [[ "$STRAT" == "st5-AttUpd" ]]; then
+                kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const-tpm.yaml"
+            else
+                kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml"
+            fi
+            kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-gateway.yaml"
+
+            # ---- Disable connection reuse via DestinationRules ----
+            # Forces maxRequestsPerConnection=1 so every request gets a new connection
+            kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-no-connection-reuse.yaml"
+
+            kubectl wait --for=condition=Ready pod -l app=details --timeout=300s
+            kubectl wait --for=condition=Ready pod -l app=productpage --timeout=300s
+            kubectl wait --for=condition=Ready pod -l app=ratings --timeout=300s
+            kubectl wait --for=condition=Ready pod -l app=reviews --timeout=300s
+            kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
+            kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
+
+            # ---- Fetch ingress ----
+            get_ingress_ip_port
+            echo "Ingress: ${INGRESS_IP}:${INGRESS_PORT}"
 
             # Kill any leftover port-forward on PROM_PORT
             lsof -ti :${PROM_PORT} | xargs -r kill 2>/dev/null || true
