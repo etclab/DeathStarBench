@@ -1,0 +1,43 @@
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: details-no-reuse
+spec:
+  host: details
+  trafficPolicy:
+    connectionPool:
+      http:
+        maxRequestsPerConnection: 1
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: ratings-no-reuse
+spec:
+  host: ratings
+  trafficPolicy:
+    connectionPool:
+      http:
+        maxRequestsPerConnection: 1
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: reviews-no-reuse
+spec:
+  host: reviews
+  trafficPolicy:
+    connectionPool:
+      http:
+        maxRequestsPerConnection: 1
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: productpage-no-reuse
+spec:
+  host: productpage
+  trafficPolicy:
+    connectionPool:
+      http:
+        maxRequestsPerConnection: 1

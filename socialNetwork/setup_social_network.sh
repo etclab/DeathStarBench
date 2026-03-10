@@ -16,7 +16,7 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RES_DIR=${RES_DIR:-"${SCRIPT_DIR}/${TIMESTAMP}/${STRAT}-${DURATION}"}
 OUT_FILE="$RES_DIR/${RPS}.txt"
 
-mkdir -p $RES_DIR
+# mkdir -p $RES_DIR
 
 echo "Strategy: $STRAT | Tag: $TAG | Duration: $DURATION seconds | RPS: $RPS"
 echo "Results Directory: $RES_DIR"
@@ -56,7 +56,9 @@ for cmd in "$@"; do
         run-mixed-load) run_mixed_load=true;;
         remove-istio) remove_istio=true ;;
         disable-keep-alive) keep_alive=false ;;
-        *) 
+        install-prometheus) install_prometheus=true ;;
+        uninstall-prometheus) uninstall_prometheus=true ;;
+        *)
             mazu_echo "Unknown command: $cmd"
             ;;
     esac
@@ -84,8 +86,8 @@ fi
 
 if [[ "$remove_istio" == "true" ]]; then
     "$ISTIOCTL_PATH" uninstall -y --purge --kubeconfig ~/.kube/config
-    kubectl delete lease istiod-key-curator-leader -n istio-system
-    kubectl wait --for=delete leases.coordination.k8s.io istiod-key-curator-leader -n istio-system --timeout=300s
+    kubectl delete lease istiod-key-curator-leader -n istio-system --ignore-not-found
+    kubectl wait --for=delete leases.coordination.k8s.io istiod-key-curator-leader -n istio-system --timeout=300s 2>/dev/null || true
 fi
 
 if [[ "$install_mazu" == "true" ]]; then
@@ -211,6 +213,18 @@ if [[ "$uninstall_social_network" == "true" ]]; then
     kubectl delete -f $SCRIPT_DIR/kubernetes/istio-gateway.yaml
 fi
 
+if [[ "$install_prometheus" == "true" ]]; then
+    mazu_echo "Installing Prometheus in istio-system..."
+    kubectl apply -f $SCRIPT_DIR/scratch/release/samples/addons/prometheus.yaml
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=prometheus -n istio-system --timeout=300s
+    mazu_echo "Prometheus is ready"
+fi
+
+if [[ "$uninstall_prometheus" == "true" ]]; then
+    mazu_echo "Uninstalling Prometheus from istio-system..."
+    kubectl delete -f $SCRIPT_DIR/scratch/release/samples/addons/prometheus.yaml --ignore-not-found
+fi
+
 if [[ "$get_ingress" == "true" ]]; then
     # fetch ingress IP and port
     get_ingress_ip_port
@@ -235,10 +249,8 @@ if [[ "$run_mixed_load" == "true" ]]; then
 
     # freshly create TPMs on all nodes for the new run
     mazu_echo "Creating TPMs on all nodes..."
-    for node in node-0 node-1 node-2 node-3; do
-        ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" &
-    done
-    wait
+    NODE0="apoudel@c220g1-031118.wisc.cloudlab.us"
+    ssh "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
     mazu_echo "TPMs created on all nodes"
 
     sleep 10s
