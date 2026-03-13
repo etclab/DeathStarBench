@@ -492,6 +492,12 @@ spec:
     spec:
       enableServiceLinks: true
       serviceAccountName: prometheus
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
       containers:
         - name: prometheus-server-configmap-reload
           image: "ghcr.io/prometheus-operator/prometheus-config-reloader:v0.76.0"

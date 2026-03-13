@@ -73,6 +73,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-details
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: details
         image: docker.io/istio/examples-bookinfo-details-v1:1.20.3
@@ -134,6 +141,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-ratings
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: ratings
         image: docker.io/istio/examples-bookinfo-ratings-v1:1.20.3
@@ -195,6 +209,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-reviews
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
@@ -245,6 +266,13 @@ spec:
         version: v2
     spec:
       serviceAccountName: bookinfo-reviews
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v2:1.20.3
@@ -295,6 +323,13 @@ spec:
         version: v3
     spec:
       serviceAccountName: bookinfo-reviews
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v3:1.20.3
@@ -372,6 +407,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-productpage
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: productpage
         image: docker.io/istio/examples-bookinfo-productpage-v1:1.20.3

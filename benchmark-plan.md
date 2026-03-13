@@ -69,6 +69,9 @@ Will instrument source code to measure per-operation costs in the request path. 
 
 
 ## Backlog
-- ensure `python3-pip` and `build-essential` are installed
+- ensure `python3-pip`, `build-essential`, `helm` are installed
+- ensure the test runner node has `kubectl` config set to connect to the `k8s` cluster
+  - use the external ip of k8s node in `~/.kube/config`
 - ensure `./setup_social_network.sh init-packages` is run
 - ensure `./setup_social_network.sh build-wrk2` is run
+- ensure test runner node can ssh into the individual nodes of the `k8s` cluster and setup tpm devices

@@ -14,6 +14,12 @@ spec:
   components:
     pilot:
       k8s:
+        nodeSelector:
+          node-role.kubernetes.io/control-plane: ""
+        tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
         resources:
           requests:
             cpu: "2000m"
@@ -46,6 +52,13 @@ spec:
     - name: istio-ingressgateway
       enabled: true
       k8s:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: DoesNotExist
         hpaSpec:
           minReplicas: 5
           maxReplicas: 5

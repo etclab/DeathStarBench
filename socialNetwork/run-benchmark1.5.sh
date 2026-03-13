@@ -27,8 +27,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
 STRATEGIES=(${STRATEGIES:-"st5-AttUpd"})
 # RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
-RPS_VALUES=(${RPS_VALUES:-60 80 100})
-# RPS_VALUES=(${RPS_VALUES:-20})
+# RPS_VALUES=(${RPS_VALUES:-50 60 70})
+# RPS_VALUES=(${RPS_VALUES:-5 10 15 20})
+RPS_VALUES=(${RPS_VALUES:-50})
 DURATION=${DURATION:-240}
 # DURATION=${DURATION:-60}
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5-$(date +%m-%d-%y_%H%M%S)}"
@@ -53,6 +54,12 @@ fi
 if [ ! -x "$ISTIOCTL_PATH" ]; then
     echo "ERROR: istioctl still not found at $ISTIOCTL_PATH after install attempt"
     exit 1
+fi
+
+# ensure istio-system namespace exists
+if ! kubectl get namespace istio-system > /dev/null 2>&1; then
+    mazu_echo "Creating istio-system namespace..."
+    kubectl create namespace istio-system
 fi
 
 mazu_echo "=== Benchmark 1.5: Steady State (No Connection Reuse) ==="
@@ -94,14 +101,27 @@ for STRAT in "${STRATEGIES[@]}"; do
             kubectl wait --for=delete pod -l app=istiod -n istio-system --timeout=300s 2>/dev/null || true
             kubectl wait --for=delete pod -l app=istio-ingressgateway -n istio-system --timeout=300s 2>/dev/null || true
 
-            # delete kube-apiserver between runs
-            kubectl -n kube-system delete pods -l component=kube-apiserver
-            kubectl -n kube-system wait --for=condition=Ready pods -l component=kube-apiserver --timeout=300s
+            # delete kube-apiserver between runs and wait for all replacements to be Ready
+            APISERVER_COUNT=$(kubectl -n kube-system get pods -l component=kube-apiserver --no-headers 2>/dev/null | wc -l)
+            kubectl -n kube-system delete pods -l component=kube-apiserver --now --timeout=60s 2>/dev/null || true
+
+            echo "API server count: $APISERVER_COUNT. Waiting for all kube-apiserver pods to become Ready..."
+            echo "Waiting for all kube-apiserver pods to become Ready..."
+            until [ "$(kubectl -n kube-system get pods -l component=kube-apiserver -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' 2>/dev/null | grep -c True)" -ge "$APISERVER_COUNT" ]; do
+                sleep 3
+            done
+            echo "All kube-apiserver pods are Ready"
 
             # ---- Create fresh TPMs ----
             echo "Creating TPMs on all nodes..."
-            NODE0="apoudel@c220g1-031118.wisc.cloudlab.us"
-            ssh "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
+            NODE0="apoudel@pc838.emulab.net"
+            SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+            # On first run, clone trinc repo and set up TPM libs on all nodes
+            if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
+                echo "First run: setting up trinc/swtpm on all nodes..."
+                ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d emulab.net pc838 pc781 pc712 pc704
+            fi
+            ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
             echo "TPMs created on all nodes"
 
             sleep 60s
