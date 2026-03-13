@@ -1,0 +1,131 @@
+##################################################################################################
+# Fortio server (TPM variant for st5-AttUpd)
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: fortio-server
+  labels:
+    app: fortio-server
+    service: fortio-server
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: fortio-server
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fortio-server
+  labels:
+    account: fortio-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fortio-server
+  labels:
+    app: fortio-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fortio-server
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+      labels:
+        app: fortio-server
+    spec:
+      serviceAccountName: fortio-server
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+      containers:
+      - name: fortio-server
+        image: fortio/fortio:latest
+        command: ["fortio", "server"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "2"
+            memory: "1Gi"
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+---
+##################################################################################################
+# Fortio client (TPM variant for st5-AttUpd)
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: fortio-client
+  labels:
+    app: fortio-client
+    service: fortio-client
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: fortio-client
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fortio-client
+  labels:
+    account: fortio-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fortio-client
+  labels:
+    app: fortio-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fortio-client
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+      labels:
+        app: fortio-client
+    spec:
+      serviceAccountName: fortio-client
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+      containers:
+      - name: fortio-client
+        image: fortio/fortio:latest
+        command: ["sleep", "infinity"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "2"
+            memory: "1Gi"
+          requests:
+            cpu: "1"
+            memory: "512Mi"
