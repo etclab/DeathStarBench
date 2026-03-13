@@ -7,8 +7,8 @@
 #   ./collect_inline_metrics.sh <output_dir> <duration_seconds> <start_epoch> [rps]
 #
 # Queries Prometheus for:
-#   - mazu_benchmark_op_latency_ms (per-operation latencies)
-#   - mazu_benchmark_total_latency_ms (total ext_authz path latency)
+#   - istio_agent_mazu_benchmark_op_latency_ms (per-operation latencies)
+#   - istio_agent_mazu_benchmark_total_latency_ms (total ext_authz path latency)
 #
 # Output: <output_dir>/inline_metrics_<rps>.json
 
@@ -61,7 +61,7 @@ for op in "${OPS[@]}"; do
     for i in "${!QUANTILES[@]}"; do
         q="${QUANTILES[$i]}"
         qname="${QUANTILE_NAMES[$i]}"
-        result=$(prom_query_instant "histogram_quantile(${q}, rate(mazu_benchmark_op_latency_ms_bucket{benchmark_op=\"${op}\"}[${DURATION}s]))")
+        result=$(prom_query_instant "histogram_quantile(${q}, rate(istio_agent_mazu_benchmark_op_latency_ms_bucket{benchmark_op=\"${op}\"}[${DURATION}s]))")
         if [ "$first_q" = true ]; then
             first_q=false
         else
@@ -79,7 +79,7 @@ first_q=true
 for i in "${!QUANTILES[@]}"; do
     q="${QUANTILES[$i]}"
     qname="${QUANTILE_NAMES[$i]}"
-    result=$(prom_query_instant "histogram_quantile(${q}, rate(mazu_benchmark_total_latency_ms_bucket[${DURATION}s]))")
+    result=$(prom_query_instant "histogram_quantile(${q}, rate(istio_agent_mazu_benchmark_total_latency_ms_bucket[${DURATION}s]))")
     if [ "$first_q" = true ]; then
         first_q=false
     else
