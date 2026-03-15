@@ -1,0 +1,5 @@
+Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+p50	1.72	0.31	8.06	37.68	0.05	1.75	0.66	17.43	65.70	0.05	98.43
+p90	2.35	0.48	16.80	47.82	0.09	2.36	0.94	23.62	93.25	0.09	185.00
+p95	2.42	0.50	20.90	49.09	0.10	2.44	0.98	24.40	96.69	0.10	212.01
+p99	2.49	0.89	24.18	64.65	0.10	2.50	1.57	27.36	99.45	4.47	251.02

@@ -1,0 +1,6 @@
+Component	istio	st5-AttUpd
+fortio-client	30.21	41.05
+fortio-server	33.82	39.78
+istiod	48.23	97.85
+kube-apiserver	527.45	528.55
+kube-apiserver-2	514.56	527.04

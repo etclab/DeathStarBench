@@ -1,0 +1,31 @@
+set terminal postscript enhanced color eps font "Helvetica, 18"
+set size 1, 0.7
+
+# my original colors
+#set style line 1 linecolor rgb "#3b81f7" # blue
+#set style line 2 linecolor rgb "#db5340" # red
+#set style line 3 linecolor rgb "#e8a14a" # orange
+#set style line 4 linecolor rgb "#85d660" # green
+#set style line 5 linecolor rgb "#b260ea" # purple
+#set style line 6 linecolor rgb "#f6d757" # yellow
+#set style line 7 linecolor rgb "#929292" # grey 
+#set style line 8 linecolor rgb "#c96abe" # pink 
+#set style line 9 linecolor rgb "#fffdd0" # cream 
+#set style line 10 linecolor rgb "#00a36c" # jade green
+#set style line 11 linecolor rgb "#5a5a5a" # dark gray
+
+
+# Paul Tol's ligtht
+# https://cran.r-project.org/web/packages/khroma/vignettes/tol.html
+set style line 1 linecolor rgb "#77AADD" # blue
+set style line 2 linecolor rgb "#EE8866" # coral blue
+set style line 3 linecolor rgb "#EEDD88" # pale yellow
+set style line 4 linecolor rgb "#FFAABB" # pink
+set style line 5 linecolor rgb "#99DDFF" # light blue
+set style line 6 linecolor rgb "#44BB99" # teal
+set style line 7 linecolor rgb "#BBCC33" # lime green purple 
+set style line 8 linecolor rgb "#AAAA00" # dark greeen
+set style line 9 linecolor rgb "#DDDDDDD" # light gray
+## these are extras I added
+set style line 10 linecolor rgb "#fffdd0" # cream 
+set style line 11 linecolor rgb "#5a5a5a" # dark gray

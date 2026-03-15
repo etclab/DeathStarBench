@@ -1,0 +1,44 @@
+load "../style.gpi"
+
+set terminal pdfcairo enhanced color
+set output "latency_breakdown.pdf"
+
+set style data histogram
+set style histogram rowstacked
+set style fill border -1
+
+set boxwidth 0.9
+
+set ylabel "Latency (ms)" font "Helvetica, 16"
+set xlabel "" font "Helvetica, 16"
+set title "Mazu Latency Breakdown by Operation (50 RPS, 4min)" font "Helvetica, 16"
+
+set key outside bottom center font "Helvetica, 10" width -1 maxrows 3
+set xtics font "Helvetica, 12"
+set ytics font "Helvetica, 12"
+
+set grid ytics lt 0 lw 0.5
+
+# Stacked bars: client ops (pattern 2) then server ops (pattern 5) per percentile
+# Data columns: Label kc_fetch counter_att rbe_proof challenge_resp token_review
+#                     kc_fetch counter_att rbe_proof challenge_resp token_review e2e
+# Legend: operation keys (by color) and client/server keys (by pattern)
+plot keyentry with boxes fs pattern 2 lc rgb "#888888" title "client", \
+     keyentry with boxes fs pattern 5 lc rgb "#888888" title "server", \
+     keyentry with linespoints ls 3 lw 2 title "fortio\\_e2e", \
+     keyentry with boxes fs solid 0.8 ls 6 title "kc\\_fetch", \
+     keyentry with boxes fs solid 0.8 ls 2 title "counter\\_att", \
+     keyentry with boxes fs solid 0.8 ls 4 title "challenge\\_resp", \
+     keyentry with boxes fs solid 0.8 ls 1 title "rbe\\_proof", \
+     keyentry with boxes fs solid 0.8 ls 3 title "token\\_review", \
+     "plot_latency_breakdown.dat" using 2:xtic(1) notitle ls 7 fs pattern 2, \
+     '' using 3 notitle ls 2 fs pattern 2, \
+     '' using 5 notitle ls 4 fs pattern 2, \
+     '' using 4 notitle ls 1 fs pattern 2, \
+     '' using 6 notitle ls 3 fs pattern 2, \
+     '' using 7 notitle ls 6 fs pattern 5, \
+     '' using 8 notitle ls 2 fs pattern 5, \
+     '' using 10 notitle ls 4 fs pattern 5, \
+     '' using 9 notitle ls 1 fs pattern 5, \
+     '' using 11 notitle ls 3 fs pattern 5, \
+     '' using 0:12 with linespoints notitle ls 3 lw 2
