@@ -8,3 +8,14 @@ spec:
     connectionPool:
       http:
         maxRequestsPerConnection: 1
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: fortio-client-no-reuse
+spec:
+  host: fortio-client
+  trafficPolicy:
+    connectionPool:
+      http:
+        maxRequestsPerConnection: 1

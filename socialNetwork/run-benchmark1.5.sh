@@ -114,12 +114,12 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # ---- Create fresh TPMs ----
             echo "Creating TPMs on all nodes..."
-            NODE0="apoudel@pc838.emulab.net"
+            NODE0="apoudel@apt033.apt.emulab.net"
             SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             # On first run, clone trinc repo and set up TPM libs on all nodes
             if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
                 echo "First run: setting up trinc/swtpm on all nodes..."
-                ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d emulab.net pc838 pc781 pc712 pc704
+                ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d apt.emulab.net apt033 apt030 apt029 apt036
             fi
             ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
             echo "TPMs created on all nodes"

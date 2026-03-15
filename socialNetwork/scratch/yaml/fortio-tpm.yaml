@@ -118,7 +118,7 @@ spec:
       containers:
       - name: fortio-client
         image: fortio/fortio:latest
-        command: ["sleep", "infinity"]
+        command: ["fortio", "server"]
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

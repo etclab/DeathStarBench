@@ -102,11 +102,11 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@pc838.emulab.net"
+        NODE0="apoudel@apt033.apt.emulab.net"
         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
             echo "First run: setting up trinc/swtpm on all nodes..."
-            ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d emulab.net pc838 pc781 pc712 pc704
+            ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d apt.emulab.net apt033 apt030 apt029 apt036
         fi
         ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
         echo "TPMs created on all nodes"
@@ -180,9 +180,12 @@ for STRAT in "${STRATEGIES[@]}"; do
         # Record start time for Prometheus queries
         BENCH_START=$(date +%s)
 
+        # TODO: ensure fortio is using mtls
         # ---- Run fortio load (direct pod-to-pod, no ingress) ----
         kubectl exec "$FORTIO_CLIENT_POD" -c fortio-client -- \
-            fortio load -qps "$RPS" -t "${DURATION}s" -json /dev/stdout \
+            fortio load -qps "$RPS" -t "${DURATION}s" \
+            -p "50,90,95,99" \
+            -json /dev/stdout \
             http://fortio-server:8080/ > "$RES_DIR/fortio_${RPS}.json"
 
         BENCH_END=$(date +%s)
@@ -207,13 +210,30 @@ for STRAT in "${STRATEGIES[@]}"; do
         python3 "${SCRIPT_DIR}/generate_dat.py" "$RES_DIR" || \
             echo "WARNING: CPU/memory .dat file generation failed"
 
-        if [[ "$STRAT" != "istio" ]]; then
-            python3 "${SCRIPT_DIR}/generate_inline_dat.py" "$RES_DIR" || \
-                echo "WARNING: Inline .dat file generation failed"
-        fi
+        python3 "${SCRIPT_DIR}/generate_inline_dat.py" "$RES_DIR" || \
+            echo "WARNING: Inline .dat file generation failed"
 
         echo "=== Benchmark 2 completed at $(date) for $STRAT ==="
     )
 done
+
+# --- Generate consolidated plot data and PDFs ---
+echo "Generating consolidated plot data..."
+python3 "${SCRIPT_DIR}/generate_plot_data.py" "$RESULTS_DIR" "${STRATEGIES[@]}" || \
+    echo "WARNING: Plot data generation failed"
+
+echo "Copying gnuplot scripts and generating PDFs..."
+for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi; do
+    cp "${SCRIPT_DIR}/results/${gpi}" "$RESULTS_DIR/" 2>/dev/null || true
+done
+(
+    cd "$RESULTS_DIR"
+    for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi; do
+        if [ -f "$gpi" ]; then
+            gnuplot "$gpi" 2>/dev/null && echo "  Generated PDF from $gpi" || \
+                echo "  WARNING: gnuplot failed for $gpi"
+        fi
+    done
+)
 
 echo "=== All benchmark 2 runs complete. Results in ${RESULTS_DIR} ==="
