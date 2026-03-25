@@ -117,7 +117,7 @@ for STRAT in "${STRATEGIES[@]}"; do
         if [[ "$STRAT" == "istio" ]]; then
             ${SCRIPT_DIR}/setup_social_network.sh install-istio
         else
-            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
+            MAZU_BENCHMARK_INLINE_ENABLED=true ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
             ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
 
             if [[ "$STRAT" == "st5-AttUpd" ]]; then
