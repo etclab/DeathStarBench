@@ -24,12 +24,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Configuration ---
-# STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
-STRATEGIES=(${STRATEGIES:-"st5-AttUpd"})
+STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
+# STRATEGIES=(${STRATEGIES:-"st5-AttUpd"})
 # RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
 # RPS_VALUES=(${RPS_VALUES:-50 60 70})
-# RPS_VALUES=(${RPS_VALUES:-5 10 15 20})
-RPS_VALUES=(${RPS_VALUES:-50})
+RPS_VALUES=(${RPS_VALUES:-20 40 60 80 100})
 DURATION=${DURATION:-240}
 # DURATION=${DURATION:-60}
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5-$(date +%m-%d-%y_%H%M%S)}"
@@ -114,7 +113,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # ---- Create fresh TPMs ----
             echo "Creating TPMs on all nodes..."
-            NODE0="apoudel@apt033.apt.emulab.net"
+            NODE0="apoudel@pc849.emulab.net"
             SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             # On first run, clone trinc repo and set up TPM libs on all nodes
             if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
@@ -203,7 +202,7 @@ for STRAT in "${STRATEGIES[@]}"; do
             # Record start time for Prometheus queries
             BENCH_START=$(date +%s)
 
-            ${SCRIPT_DIR}/../wrk2/wrk -D exp -t 16 -c 128 -d ${DURATION} -L \
+            ${SCRIPT_DIR}/../wrk2/wrk -D exp -t 8 -c 8 -d ${DURATION} -L \
                 -s ${SCRIPT_DIR}/wrk2/scripts/social-network/read-productpage.lua \
                 http://$INGRESS_IP:$INGRESS_PORT -R ${RPS} > "${OUT_FILE}"
 
@@ -229,5 +228,23 @@ for STRAT in "${STRATEGIES[@]}"; do
         echo "=== Benchmark 1.5 completed at $(date) for $STRAT ==="
     )
 done
+
+# --- Generate latency .dat files and combined CPU/memory .dat files ---
+python3 "${SCRIPT_DIR}/results/parse_15_data.py" "$RESULTS_DIR" || \
+    echo "WARNING: parse_15_data.py failed"
+
+# --- Copy gnuplot scripts into results directory ---
+cp "${SCRIPT_DIR}/results/plot_15_e2e_latency.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/plot_15_cpu.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/plot_15_memory.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/style.gpi" "$RESULTS_DIR/" || true
+
+# --- Generate plots ---
+(
+    cd "$RESULTS_DIR"
+    gnuplot plot_15_e2e_latency.gpi || echo "WARNING: plot_15_e2e_latency.gpi failed"
+    gnuplot plot_15_cpu.gpi || echo "WARNING: plot_15_cpu.gpi failed"
+    gnuplot plot_15_memory.gpi || echo "WARNING: plot_15_memory.gpi failed"
+)
 
 echo "=== All benchmark 1.5 runs complete. Results in ${RESULTS_DIR} ==="
