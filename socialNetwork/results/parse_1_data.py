@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Parse benchmark 1.5 data and generate gnuplot .dat files.
+"""Parse benchmark 1 data and generate gnuplot .dat files.
 
-Parses wrk2 output for latency and calls generate_dat.py for CPU/memory.
+Parses wrk2 output for latency and combines per-strategy CPU/memory .dat files.
 
 Usage:
-    python3 parse_15_data.py <benchmark_dir>
+    python3 parse_1_data.py <benchmark_dir>
 
 Example:
     cd socialNetwork/results
-    python3 parse_15_data.py benchmark1.5-03-25-26_134007
+    python3 parse_1_data.py benchmark1-03-26-26_071624
 """
 
 import argparse
@@ -39,12 +39,12 @@ def parse_wrk2_latency(filepath):
             value = float(match.group(1))
             unit = match.group(2)
             # Convert to ms
-            if unit == 's':
+            if unit == "m":
+                value *= 60 * 1000
+            elif unit == 's':
                 value *= 1000
             elif unit == 'us':
                 value /= 1000
-            elif unit == 'm':
-                value *= 60 * 1000
             results[label] = value
         else:
             results[label] = None
@@ -89,14 +89,14 @@ def write_combined_resource_dat(bench_dir, metric):
     """Read {metric}.dat from each strategy and write a single combined file.
 
     Uses gnuplot index blocks (separated by double blank lines), one per RPS:
-        # RPS = 20
+        # RPS = 50
         Service              Istio              Mazu
         details-v1           0.044              0.056
         ...
 
         <blank>
         <blank>
-        # RPS = 40
+        # RPS = 150
         ...
     """
     strategy_data = {}
@@ -141,58 +141,56 @@ def write_combined_resource_dat(bench_dir, metric):
 
 
 def write_combined_latency_dat(bench_dir):
-    """Read latency.dat from each strategy and write a single combined file.
+    """Combine per-strategy latency.dat into a single file for bar chart plotting.
 
     Output format (one row per QPS):
-        # QPS   Istio_p50  Istio_p90  Istio_p99  Mazu_p50  Mazu_p90  Mazu_p99
-        20      45.60      57.12      87.17      49.44     65.86     167.04
+        QPS  Istio_p50  Istio_p90  Istio_p99  Mazu_p50  Mazu_p90  Mazu_p99
     """
+    # Collect latency data keyed by (strategy, qps)
     strategy_rows = {}
     all_qps = set()
 
     for strategy in STRATEGIES:
-        dat_path = bench_dir / strategy / 'latency.dat'
-        if not dat_path.exists():
-            print(f"Warning: {dat_path} not found, skipping...")
+        strategy_dir = bench_dir / strategy
+        if not strategy_dir.is_dir():
             continue
         rows = {}
-        with open(dat_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                parts = line.split()
-                qps = int(parts[0])
-                p50, p90, p99 = float(parts[1]), float(parts[2]), float(parts[3])
-                rows[qps] = (p50, p90, p99)
+        for result_file in strategy_dir.iterdir():
+            if not is_valid_result_file(result_file):
+                continue
+            qps = int(result_file.stem)
+            latencies = parse_wrk2_latency(result_file)
+            if all(v is not None for v in latencies.values()):
+                rows[qps] = (latencies['p50'], latencies['p90'], latencies['p99'])
                 all_qps.add(qps)
         strategy_rows[strategy] = rows
 
-    if not strategy_rows:
+    if not all_qps or not strategy_rows:
         return
 
     sorted_qps = sorted(all_qps)
     labels = [STRATEGY_LABELS.get(s, s) for s in STRATEGIES]
     out_path = bench_dir / 'latency_combined.dat'
     with open(out_path, 'w') as f:
-        f.write("# End-to-end latency: Istio vs Mazu\n")
-        header_cols = []
-        for label in labels:
-            for pct in ['p50', 'p90', 'p99']:
-                header_cols.append(f"{label}_{pct}(ms)")
-        f.write(f"# {'QPS':<6} " + "  ".join(f"{c:<14}" for c in header_cols) + "\n")
+        f.write(f"# {'QPS':<10}")
+        for lbl in labels:
+            f.write(f" {lbl+'_p50':<14} {lbl+'_p90':<14} {lbl+'_p99':<14}")
+        f.write("\n")
         for qps in sorted_qps:
-            vals = []
+            f.write(f"  {qps:<10}")
             for strategy in STRATEGIES:
-                row = strategy_rows.get(strategy, {}).get(qps, (0.0, 0.0, 0.0))
-                vals.extend(row)
-            f.write(f"  {qps:<6} " + "  ".join(f"{v:<14.2f}" for v in vals) + "\n")
+                row = strategy_rows.get(strategy, {}).get(qps)
+                if row:
+                    f.write(f" {row[0]:<14.2f} {row[1]:<14.2f} {row[2]:<14.2f}")
+                else:
+                    f.write(f" {'N/A':<14} {'N/A':<14} {'N/A':<14}")
+            f.write("\n")
 
-    print(f"Wrote {out_path} ({len(sorted_qps)} QPS levels)")
+    print(f"Wrote {out_path} ({len(sorted_qps)} entries)")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Parse benchmark 1.5 data into gnuplot .dat files")
+    parser = argparse.ArgumentParser(description="Parse benchmark 1 data into gnuplot .dat files")
     parser.add_argument("benchmark_dir", help="Path to benchmark results directory")
     args = parser.parse_args()
 
@@ -230,10 +228,12 @@ def main():
 
         print(f"Wrote {dat_path} ({len(rows)} entries)")
 
-    # Generate combined CPU, memory, and latency dat files
+    # Generate combined latency dat file (both strategies side-by-side)
+    write_combined_latency_dat(bench_dir)
+
+    # Generate combined CPU and memory dat files
     write_combined_resource_dat(bench_dir, 'cpu')
     write_combined_resource_dat(bench_dir, 'memory')
-    write_combined_latency_dat(bench_dir)
 
 
 if __name__ == "__main__":
