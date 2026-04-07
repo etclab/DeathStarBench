@@ -1,0 +1,12 @@
+Component	istio	st5-AttUpd
+details-v1	45.69	49.16
+fortio-client	33.98	44.13
+fortio-server	32.35	40.43
+productpage-v1	60.42	61.98
+ratings-v1	45.93	44.54
+reviews-v1	44.33	44.16
+reviews-v2	48.28	46.16
+reviews-v3	44.04	44.70
+istiod	75.99	107.91
+kube-apiserver	540.44	514.99
+kube-apiserver-2	469.96	551.26

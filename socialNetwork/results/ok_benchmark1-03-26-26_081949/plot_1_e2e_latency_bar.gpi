@@ -1,0 +1,31 @@
+load "style.gpi"
+
+set terminal pdfcairo enhanced color
+set output "plot_1_e2e_latency_bar.pdf"
+
+set xlabel "Queries per second (QPS)"
+set ylabel "Latency (ms)"
+set key top left
+set logscale y
+
+set grid ytics
+set tics nomirror
+
+set style data histogram
+set style histogram clustered gap 2
+set style fill solid 0.8 border -1
+set boxwidth 0.9
+
+plot \
+    keyentry with boxes linestyle 1 fillstyle solid 0.8 title "Istio", \
+    keyentry with boxes linestyle 2 fillstyle solid 0.8 title "Mazu", \
+    keyentry title " ", \
+    keyentry with boxes linecolor rgb "black" fillstyle pattern 1 title "p50", \
+    keyentry with boxes linecolor rgb "black" fillstyle pattern 4 title "p90", \
+    keyentry with boxes linecolor rgb "black" fillstyle pattern 6 title "p99", \
+    'latency_combined.dat' using 2:xtic(1) notitle linestyle 1 fillstyle pattern 1, \
+    ''                     using 3          notitle linestyle 1 fillstyle pattern 4, \
+    ''                     using 4          notitle linestyle 1 fillstyle pattern 6, \
+    ''                     using 5          notitle linestyle 2 fillstyle pattern 1, \
+    ''                     using 6          notitle linestyle 2 fillstyle pattern 4, \
+    ''                     using 7          notitle linestyle 2 fillstyle pattern 6
