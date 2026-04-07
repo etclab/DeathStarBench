@@ -56,13 +56,6 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
-        resources:
-          limits:
-            cpu: "2"
-            memory: "1Gi"
-          requests:
-            cpu: "1"
-            memory: "512Mi"
 ---
 ##################################################################################################
 # Fortio client (TPM variant for st5-AttUpd)
@@ -122,10 +115,3 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
-        resources:
-          limits:
-            cpu: "2"
-            memory: "1Gi"
-          requests:
-            cpu: "1"
-            memory: "512Mi"

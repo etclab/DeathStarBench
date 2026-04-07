@@ -25,7 +25,7 @@ set style line 5 linecolor rgb "#99DDFF" # light blue
 set style line 6 linecolor rgb "#44BB99" # teal
 set style line 7 linecolor rgb "#BBCC33" # lime green purple 
 set style line 8 linecolor rgb "#AAAA00" # dark greeen
-set style line 9 linecolor rgb "#DDDDDDD" # light gray
+set style line 9 linecolor rgb "#DDDDDD" # light gray
 ## these are extras I added
 set style line 10 linecolor rgb "#fffdd0" # cream 
 set style line 11 linecolor rgb "#5a5a5a" # dark gray

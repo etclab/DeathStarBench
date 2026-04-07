@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Configuration ---
 STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
-RPS=${RPS:-100}
+RPS=${RPS:-1000}
 DURATION=${DURATION:-240}
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark2-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
@@ -102,7 +102,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@apt033.apt.emulab.net"
+        NODE0="apoudel@pc849.emulab.net"
         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
             echo "First run: setting up trinc/swtpm on all nodes..."
@@ -180,7 +180,6 @@ for STRAT in "${STRATEGIES[@]}"; do
         # Record start time for Prometheus queries
         BENCH_START=$(date +%s)
 
-        # TODO: ensure fortio is using mtls
         # ---- Run fortio load (direct pod-to-pod, no ingress) ----
         kubectl exec "$FORTIO_CLIENT_POD" -c fortio-client -- \
             fortio load -qps "$RPS" -t "${DURATION}s" \
@@ -223,12 +222,12 @@ python3 "${SCRIPT_DIR}/generate_plot_data.py" "$RESULTS_DIR" "${STRATEGIES[@]}" 
     echo "WARNING: Plot data generation failed"
 
 echo "Copying gnuplot scripts and generating PDFs..."
-for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi; do
+for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi plot_latency_breakdown_v2.gpi; do
     cp "${SCRIPT_DIR}/results/${gpi}" "$RESULTS_DIR/" 2>/dev/null || true
 done
 (
     cd "$RESULTS_DIR"
-    for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi; do
+    for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi plot_latency_breakdown_v2.gpi; do
         if [ -f "$gpi" ]; then
             gnuplot "$gpi" 2>/dev/null && echo "  Generated PDF from $gpi" || \
                 echo "  WARNING: gnuplot failed for $gpi"
