@@ -81,7 +81,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@c220g1-031118.wisc.cloudlab.us"
+        NODE0="apoudel@pc849.emulab.net"
         ssh "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
         echo "TPMs created on all nodes"
 
@@ -191,5 +191,25 @@ for STRAT in "${STRATEGIES[@]}"; do
         echo "=== Benchmark 1 completed at $(date) for $STRAT ==="
     )
 done
+
+# --- Generate latency .dat files and combined CPU/memory .dat files ---
+python3 "${SCRIPT_DIR}/results/parse_1_data.py" "$RESULTS_DIR" || \
+    echo "WARNING: parse_1_data.py failed"
+
+# --- Copy gnuplot scripts into results directory ---
+cp "${SCRIPT_DIR}/results/plot_1_e2e_latency.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/plot_1_e2e_latency_bar.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/plot_1_cpu.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/plot_1_memory.gpi" "$RESULTS_DIR/" || true
+cp "${SCRIPT_DIR}/results/style.gpi" "$RESULTS_DIR/" || true
+
+# --- Generate plots ---
+(
+    cd "$RESULTS_DIR"
+    gnuplot plot_1_e2e_latency.gpi || echo "WARNING: plot_1_e2e_latency.gpi failed"
+    gnuplot plot_1_e2e_latency_bar.gpi || echo "WARNING: plot_1_e2e_latency_bar.gpi failed"
+    gnuplot plot_1_cpu.gpi || echo "WARNING: plot_1_cpu.gpi failed"
+    gnuplot plot_1_memory.gpi || echo "WARNING: plot_1_memory.gpi failed"
+)
 
 echo "=== All benchmark 1 runs complete. Results in ${RESULTS_DIR} ==="

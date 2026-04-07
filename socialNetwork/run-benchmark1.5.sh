@@ -28,11 +28,14 @@ STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
 # STRATEGIES=(${STRATEGIES:-"st5-AttUpd"})
 # RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
 # RPS_VALUES=(${RPS_VALUES:-50 60 70})
-RPS_VALUES=(${RPS_VALUES:-20 40 60 80 100})
+# RPS_VALUES=(${RPS_VALUES:-20 40 60 80 100})
+# RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
+RPS_VALUES=(${RPS_VALUES:-20 40 60 80 100 500 1000 2000 4000})
 DURATION=${DURATION:-240}
 # DURATION=${DURATION:-60}
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
+SCALE_ENABLED=${SCALE_ENABLED:-false}
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
 
 source_setup() {
@@ -141,14 +144,24 @@ for STRAT in "${STRATEGIES[@]}"; do
                 ${SCRIPT_DIR}/setup_social_network.sh install-mazu
             fi
 
-            # ---- Install Bookinfo WITHOUT HPA ----
-            # We apply bookinfo + gateway but skip bf-hpa.yaml for steady state
+            # ---- Install Bookinfo ----
             if [[ "$STRAT" == "st5-AttUpd" ]]; then
-                kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const-tpm.yaml"
+                if [[ "$SCALE_ENABLED" == "true" ]]; then
+                    kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const-tpm.yaml"
+                else
+                    kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-var-tpm.yaml"
+                fi
             else
-                kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml"
+                if [[ "$SCALE_ENABLED" == "true" ]]; then
+                    kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-const.yaml"
+                else
+                    kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bookinfo-var.yaml"
+                fi
             fi
             kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-gateway.yaml"
+            if [[ "$SCALE_ENABLED" == "true" ]]; then
+                kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-hpa.yaml"
+            fi
 
             # ---- Disable connection reuse via DestinationRules ----
             # Forces maxRequestsPerConnection=1 so every request gets a new connection
@@ -202,7 +215,7 @@ for STRAT in "${STRATEGIES[@]}"; do
             # Record start time for Prometheus queries
             BENCH_START=$(date +%s)
 
-            ${SCRIPT_DIR}/../wrk2/wrk -D exp -t 8 -c 8 -d ${DURATION} -L \
+            ${SCRIPT_DIR}/../wrk2/wrk -D exp -t 16 -c 128 -d ${DURATION} -L \
                 -s ${SCRIPT_DIR}/wrk2/scripts/social-network/read-productpage.lua \
                 http://$INGRESS_IP:$INGRESS_PORT -R ${RPS} > "${OUT_FILE}"
 
