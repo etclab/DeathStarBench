@@ -28,6 +28,13 @@ OPS = ["kc_fetch", "counter_attestation", "rbe_proof", "challenge_response", "to
 OPS_SHORT = ["kc_fetch", "counter_att", "rbe_proof", "challenge_resp", "token_review"]
 SIDES = ["fortio-client", "fortio-server"]
 
+# Display names for strategy column headers
+STRATEGY_DISPLAY = {"st5-AttUpd": "Mazu", "istio": "Istio"}
+
+
+def display_name(strat):
+    return STRATEGY_DISPLAY.get(strat, strat)
+
 
 def read_dat(filepath):
     """Read a tab-separated .dat file, return header and rows."""
@@ -64,6 +71,35 @@ def find_mazu_strategy(strategies):
     return None
 
 
+def merge_components(vals):
+    """Merge duplicate components (e.g. kube-apiserver, kube-apiserver-2) by averaging.
+
+    Returns a new dict with merged keys and an ordered list of component names.
+    """
+    groups = {}
+    order = []
+    for comp, val in vals.items():
+        # Strip trailing -N suffix to find the base name
+        base = comp
+        parts = comp.rsplit("-", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            base = parts[0]
+        if base not in groups:
+            groups[base] = []
+            order.append(base)
+        try:
+            groups[base].append(float(val))
+        except (ValueError, TypeError):
+            pass
+    merged = {}
+    for base in order:
+        if groups[base]:
+            merged[base] = sum(groups[base]) / len(groups[base])
+        else:
+            merged[base] = float("nan")
+    return merged, order
+
+
 def generate_cpu_dat(results_dir, strategies, rps):
     """Generate plot_cpu.dat: component comparison across strategies."""
     # Read each strategy's cpu.dat
@@ -79,20 +115,23 @@ def generate_cpu_dat(results_dir, strategies, rps):
         components = header[1:]
         # Find the row matching our RPS (or take first row)
         row = rows[0]  # benchmark2 typically has one RPS
-        vals = {}
+        raw_vals = {}
         for i, comp in enumerate(components):
-            vals[comp] = row[i + 1]
+            raw_vals[comp] = row[i + 1]
+        merged, comp_order = merge_components(raw_vals)
+        for comp in comp_order:
             if comp not in all_components:
                 all_components.append(comp)
-        strat_data[strat] = vals
+        strat_data[strat] = merged
 
     outpath = os.path.join(results_dir, "plot_cpu.dat")
     with open(outpath, "w") as f:
-        f.write("Component\t" + "\t".join(strategies) + "\n")
+        f.write("Component\t" + "\t".join(display_name(s) for s in strategies) + "\n")
         for comp in all_components:
             vals = []
             for strat in strategies:
-                vals.append(strat_data.get(strat, {}).get(comp, "NaN"))
+                v = strat_data.get(strat, {}).get(comp, float("nan"))
+                vals.append(str(v) if v == v else "NaN")
             f.write(comp + "\t" + "\t".join(vals) + "\n")
     print(f"  Generated {outpath}")
 
@@ -109,25 +148,27 @@ def generate_memory_dat(results_dir, strategies, rps):
         header, rows = read_dat(path)
         components = header[1:]
         row = rows[0]
-        vals = {}
+        # Convert bytes to MB first, then merge
+        raw_vals = {}
         for i, comp in enumerate(components):
-            # Convert bytes to MB
             try:
-                val_mb = float(row[i + 1]) / (1024 * 1024)
-                vals[comp] = f"{val_mb:.2f}"
+                raw_vals[comp] = str(float(row[i + 1]) / (1024 * 1024))
             except (ValueError, IndexError):
-                vals[comp] = "NaN"
+                raw_vals[comp] = "NaN"
+        merged, comp_order = merge_components(raw_vals)
+        for comp in comp_order:
             if comp not in all_components:
                 all_components.append(comp)
-        strat_data[strat] = vals
+        strat_data[strat] = merged
 
     outpath = os.path.join(results_dir, "plot_memory.dat")
     with open(outpath, "w") as f:
-        f.write("Component\t" + "\t".join(strategies) + "\n")
+        f.write("Component\t" + "\t".join(display_name(s) for s in strategies) + "\n")
         for comp in all_components:
             vals = []
             for strat in strategies:
-                vals.append(strat_data.get(strat, {}).get(comp, "NaN"))
+                v = strat_data.get(strat, {}).get(comp, float("nan"))
+                vals.append(f"{v:.2f}" if v == v else "NaN")
             f.write(comp + "\t" + "\t".join(vals) + "\n")
     print(f"  Generated {outpath}")
 
@@ -152,7 +193,7 @@ def generate_e2e_latency_dat(results_dir, strategies):
 
     outpath = os.path.join(results_dir, "plot_e2e_latency.dat")
     with open(outpath, "w") as f:
-        f.write("Percentile\t" + "\t".join(strategies) + "\n")
+        f.write("Percentile\t" + "\t".join(display_name(s) for s in strategies) + "\n")
         for p in PERCENTILES:
             vals = []
             for strat in strategies:
@@ -200,13 +241,15 @@ def generate_latency_breakdown_dat(results_dir, mazu_strat):
             e2e = {"p50": row[1], "p90": row[2], "p95": row[3], "p99": row[4]}
             break
 
-    # Build header
+    # Build header — first 5 op columns are client-side, next 5 are server-side
     client_cols = [f"{s}" for s in OPS_SHORT]
     server_cols = [f"{s}" for s in OPS_SHORT]
     header = "Label\t" + "\t".join(client_cols) + "\t" + "\t".join(server_cols) + "\te2e"
 
     outpath = os.path.join(results_dir, "plot_latency_breakdown.dat")
     with open(outpath, "w") as f:
+        f.write("# Columns: Label | client ops (kc_fetch..token_review)"
+                " | server ops (kc_fetch..token_review) | e2e\n")
         f.write(header + "\n")
         for p in PERCENTILES:
             vals = [p]
@@ -232,6 +275,42 @@ def generate_latency_breakdown_dat(results_dir, mazu_strat):
                 vals.append("NaN")
             f.write("\t".join(vals) + "\n")
     print(f"  Generated {outpath}")
+
+    # --- v2: server-side stacked histogram data ---
+    # plot_latency_breakdown_v2.dat: flat table, one row per percentile.
+    # Columns: Label  kc_fetch  counter_att  rbe_proof  challenge_resp  token_review  e2e
+    v2_path = os.path.join(results_dir, "plot_latency_breakdown_v2.dat")
+    with open(v2_path, "w") as f:
+        f.write("Label\tkc_fetch\tcounter_att\trbe_proof\tchallenge_resp\ttoken_review\te2e\n")
+        for p in PERCENTILES:
+            op_vals = []
+            for op in OPS:
+                v = op_data.get((op, "fortio-server"), {}).get(p, "NaN")
+                try:
+                    op_vals.append(f"{float(v):.2f}")
+                except ValueError:
+                    op_vals.append("NaN")
+            e2e_val = e2e.get(p, "NaN")
+            try:
+                op_vals.append(f"{float(e2e_val):.2f}")
+            except ValueError:
+                op_vals.append("NaN")
+            f.write(p + "\t" + "\t".join(op_vals) + "\n")
+    print(f"  Generated {v2_path}")
+
+    # plot_latency_breakdown_v2_e2e.dat: x-midpoints and e2e values for line overlay.
+    # Flat rowstacked histogram: bars at x = 0, 1, 2, 3 (one per percentile).
+    e2e_path = os.path.join(results_dir, "plot_latency_breakdown_v2_e2e.dat")
+    midpoints = list(range(len(PERCENTILES)))
+    with open(e2e_path, "w") as f:
+        f.write("# x_midpoint\te2e_latency\n")
+        for i, p in enumerate(PERCENTILES):
+            e2e_val = e2e.get(p, "NaN")
+            try:
+                f.write(f"{midpoints[i]}\t{float(e2e_val):.2f}\n")
+            except ValueError:
+                f.write(f"{midpoints[i]}\tNaN\n")
+    print(f"  Generated {e2e_path}")
 
 
 def main():
