@@ -24,18 +24,25 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Configuration ---
-STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
-# STRATEGIES=(${STRATEGIES:-"st5-AttUpd"})
-# RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
-# RPS_VALUES=(${RPS_VALUES:-50 60 70})
-# RPS_VALUES=(${RPS_VALUES:-20 40 60 80 100})
-# RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300})
-RPS_VALUES=(${RPS_VALUES:-20 40 60 80 100 500 1000 2000 4000})
-DURATION=${DURATION:-240}
-# DURATION=${DURATION:-60}
+STRATEGIES=(${STRATEGIES:-"st5-AttUpd" "istio"})
+
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
 SCALE_ENABLED=${SCALE_ENABLED:-false}
+
+if [[ "$SCALE_ENABLED" == "true" ]]; then
+    # the below rps_values are used for benchmark when keep alive is on; 
+    # scaling is on; cpu cores for istio-proxy and application container are set to 2
+    # measures the cost of scaling
+    RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500})
+    DURATION=${DURATION:-120}
+else
+    # the below rps_values are used for benchmark when keep alive is off; 
+    # scaling is off; cpu cores for istio-proxy and application container are set to 2
+    # measures the cost of repeated connection setup with fixed number of pods
+    RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300 350 400 450 500})
+    DURATION=${DURATION:-240}
+fi
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
 
 source_setup() {
@@ -116,7 +123,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # ---- Create fresh TPMs ----
             echo "Creating TPMs on all nodes..."
-            NODE0="apoudel@pc849.emulab.net"
+            NODE0="apoudel@pc783.emulab.net"
             SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             # On first run, clone trinc repo and set up TPM libs on all nodes
             if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
@@ -130,6 +137,9 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # ---- Install Istio / Mazu ----
             if [[ "$STRAT" == "istio" ]]; then
+                ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
+                ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
+
                 ${SCRIPT_DIR}/setup_social_network.sh install-istio
             else
                 ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
@@ -165,7 +175,10 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # ---- Disable connection reuse via DestinationRules ----
             # Forces maxRequestsPerConnection=1 so every request gets a new connection
-            kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-no-connection-reuse.yaml"
+            # Only apply when scaling is disabled (keep-alive off scenario)
+            if [[ "$SCALE_ENABLED" != "true" ]]; then
+                kubectl apply -f "$SCRIPT_DIR/scratch/yaml/bf-no-connection-reuse.yaml"
+            fi
 
             kubectl wait --for=condition=Ready pod -l app=details --timeout=300s
             kubectl wait --for=condition=Ready pod -l app=productpage --timeout=300s
