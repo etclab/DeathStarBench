@@ -1,3 +1,14 @@
+# HPAs scale on EITHER istio-proxy CPU > 50% OR the app container CPU > 50%.
+# With multiple metrics, HPA computes desiredReplicas for each and takes the
+# Max, so whichever container saturates first triggers scale-up.
+# Utilization = usage / request; sidecar.istio.io/proxyCPU=4 and the app
+# container request=1 (see bookinfo-const.yaml).
+#
+# behavior block: react on first sample above threshold. Two scale-up policies,
+# and HPA picks the one that yields MORE pods (selectPolicy: Max):
+#   - Percent 100% / 5s: double replicas every 5s (fast ramp from small counts)
+#   - Pods +4 / 15s:     add 4 pods per 15s (stronger when replica count is high)
+
 # details service
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -11,12 +22,31 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
+  - type: ContainerResource
+    containerResource:
       name: cpu
+      container: istio-proxy
       target:
         type: Utilization
         averageUtilization: 50
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: details
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
 ---
 # ratings service
 apiVersion: autoscaling/v2
@@ -31,12 +61,31 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
+  - type: ContainerResource
+    containerResource:
       name: cpu
+      container: istio-proxy
       target:
         type: Utilization
         averageUtilization: 50
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: ratings
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
 ---
 # reviews-v1 service
 apiVersion: autoscaling/v2
@@ -51,12 +100,31 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
+  - type: ContainerResource
+    containerResource:
       name: cpu
+      container: istio-proxy
       target:
         type: Utilization
         averageUtilization: 50
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: reviews
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
 ---
 # reviews-v2 service
 apiVersion: autoscaling/v2
@@ -71,12 +139,31 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
+  - type: ContainerResource
+    containerResource:
       name: cpu
+      container: istio-proxy
       target:
         type: Utilization
         averageUtilization: 50
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: reviews
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
 ---
 # reviews-v3 service
 apiVersion: autoscaling/v2
@@ -91,12 +178,31 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
+  - type: ContainerResource
+    containerResource:
       name: cpu
+      container: istio-proxy
       target:
         type: Utilization
         averageUtilization: 50
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: reviews
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
 ---
 # productpage service
 apiVersion: autoscaling/v2
@@ -111,10 +217,29 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
+  - type: ContainerResource
+    containerResource:
       name: cpu
+      container: istio-proxy
       target:
         type: Utilization
         averageUtilization: 50
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: productpage
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
 ---
