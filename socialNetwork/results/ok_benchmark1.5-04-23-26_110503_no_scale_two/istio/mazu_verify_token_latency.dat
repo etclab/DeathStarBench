@@ -1,0 +1,12 @@
+# RPS
+# metric: verify_token; N_services=0; column groups: p50 [2..1], p90 [2..1], p99 [2..1], calls/s [2..1]
+50
+100
+150
+200
+250
+300
+350
+400
+450
+500
