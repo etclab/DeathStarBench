@@ -15,6 +15,9 @@ mazu_echo "Installing system packages..."
 sudo apt-get update
 sudo apt-get install -y python3-pip build-essential
 
+# ---------- gnuplot ----------
+sudo apt-get install -y gnuplot
+
 # ---------- kubectl ----------
 if command -v kubectl &>/dev/null; then
     mazu_echo "kubectl already installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
