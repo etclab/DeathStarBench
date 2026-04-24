@@ -102,7 +102,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@pc849.emulab.net"
+        NODE0="apoudel@pc783.emulab.net"
         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
             echo "First run: setting up trinc/swtpm on all nodes..."

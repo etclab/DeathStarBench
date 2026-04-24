@@ -9,15 +9,23 @@
 - **What it measures**: Amortized cost — only TokenReview + regStore lookup in `checkWithToken()`. All RBE proof verification, counter attestation, and challenge-response happen at startup via streaming preload.
 - **Note**: TokenReview cache has 1s TTL, so low RPS may see more cache misses.
 
-## Benchmark 1.5: Steady State (No Connection Reuse)
+## Benchmark 1.5a: Per-request TokenReview overhead
 
 - **App**: Bookinfo, scaling disabled
-- **Connection reuse**: Disabled
+- **Connection reuse**: Disabled (keep-alive off)
 - **RPS sweep**: Same as benchmark 1
 - **Metrics**: p50, p90, p95 end-to-end latency
-- **What it measures**: Per-connection TLS handshake cost. Every new connection triggers `doVerifyCertChain()` → gRPC to ext_authz → TokenReview + regStore lookup on both sides (mutual). Compared against Istio's standard X.509 chain verification.
+- **What it measures**: Per-connection TLS handshake cost with TokenReview hit on every request (not amortized). Every new connection triggers `doVerifyCertChain()` → gRPC to ext_authz → TokenReview + regStore lookup on both sides (mutual). Compared against Istio's standard X.509 chain verification.
 
-## Benchmark 2: Worst Case (All Operations in Request Path)
+## Benchmark 1.5b: End-to-end application workload
+
+- **App**: Bookinfo, scaling enabled (HPA on)
+- **Connection reuse**: Enabled (keep-alive on)
+- **RPS sweep**: 50, 100, 200, 300, ..., 1500 (higher range to trigger scaling)
+- **Metrics**: p50, p90, p95 end-to-end latency + CPU/memory
+- **What it measures**: Realistic production-representative deployment. Captures combined effect of HPA-triggered pod churn (new pods must register + attest) and steady-state amortized verification cost.
+
+## Benchmark 2: Cold-path verification cost
 
 - **App**: Two pods (fortio client/server) for clean single-hop measurement. Optionally also bookinfo for the "real app" narrative.
 - **Connection reuse**: Disabled
