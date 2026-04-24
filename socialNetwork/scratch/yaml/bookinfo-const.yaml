@@ -66,6 +66,8 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "2"
+        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -73,13 +75,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-details
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: node-role.kubernetes.io/control-plane
+      #           operator: DoesNotExist
       containers:
       - name: details
         image: docker.io/istio/examples-bookinfo-details-v1:1.20.3
@@ -134,6 +136,8 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "2"
+        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -141,13 +145,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-ratings
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: node-role.kubernetes.io/control-plane
+      #           operator: DoesNotExist
       containers:
       - name: ratings
         image: docker.io/istio/examples-bookinfo-ratings-v1:1.20.3
@@ -202,6 +206,8 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "2"
+        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -209,13 +215,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-reviews
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: node-role.kubernetes.io/control-plane
+      #           operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
@@ -259,6 +265,8 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "2"
+        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -266,13 +274,13 @@ spec:
         version: v2
     spec:
       serviceAccountName: bookinfo-reviews
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: node-role.kubernetes.io/control-plane
+      #           operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v2:1.20.3
@@ -316,6 +324,8 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "2"
+        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -323,13 +333,13 @@ spec:
         version: v3
     spec:
       serviceAccountName: bookinfo-reviews
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: node-role.kubernetes.io/control-plane
+      #           operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v3:1.20.3
@@ -400,6 +410,8 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9080"
         prometheus.io/path: "/metrics"
+        sidecar.istio.io/proxyCPULimit: "2"
+        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -407,13 +419,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-productpage
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: node-role.kubernetes.io/control-plane
+      #           operator: DoesNotExist
       containers:
       - name: productpage
         image: docker.io/istio/examples-bookinfo-productpage-v1:1.20.3
