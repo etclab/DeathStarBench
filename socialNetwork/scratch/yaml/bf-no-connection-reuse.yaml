@@ -31,13 +31,14 @@ spec:
       http:
         maxRequestsPerConnection: 1
 ---
-apiVersion: networking.istio.io/v1
-kind: DestinationRule
-metadata:
-  name: productpage-no-reuse
-spec:
-  host: productpage
-  trafficPolicy:
-    connectionPool:
-      http:
-        maxRequestsPerConnection: 1
+# NOTE: allow connection reuse on incoming requests to productpage from ingress
+# apiVersion: networking.istio.io/v1
+# kind: DestinationRule
+# metadata:
+#   name: productpage-no-reuse
+# spec:
+#   host: productpage
+#   trafficPolicy:
+#     connectionPool:
+#       http:
+#         maxRequestsPerConnection: 1
