@@ -1,0 +1,5 @@
+Component	Istio	Mazu
+fortio-client	35.13	50.89
+fortio-server	37.84	46.10
+istiod	50.55	91.16
+kube-apiserver	518.88	520.31

@@ -1,0 +1,86 @@
+# RPS = 100
+Service                Istio              Mazu              
+details-v1             46.260603          48.808036         
+productpage-v1         50.476562          0.000000          
+ratings-v1             40.350586          59.320312         
+reviews-v3             46.113281          49.614955         
+istiod                 69.451172          52.908854         
+kube-apiserver         543.243164         94.425781         
+kube-apiserver-2       600.605469         540.558594        
+
+
+# RPS = 200
+Service                Istio              Mazu              
+details-v1             44.141741          50.642578         
+productpage-v1         58.404576          0.000000          
+ratings-v1             45.870536          65.958147         
+reviews-v3             48.728795          50.329241         
+istiod                 62.710938          57.574219         
+kube-apiserver         617.741071         103.502232        
+kube-apiserver-2       541.468099         617.000000        
+
+
+# RPS = 300
+Service                Istio              Mazu              
+details-v1             42.190104          52.439941         
+productpage-v1         58.179036          0.000000          
+ratings-v1             43.155599          71.207682         
+reviews-v3             51.295201          52.593192         
+istiod                 63.082031          61.893415         
+kube-apiserver         548.331055         113.195312        
+kube-apiserver-2       580.095424         571.026228        
+
+
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             43.693359          55.427083         
+productpage-v1         63.847168          0.000000          
+ratings-v1             45.374023          72.733724         
+reviews-v3             54.082589          52.742746         
+istiod                 65.070964          55.178013         
+kube-apiserver         589.522786         110.459263        
+kube-apiserver-2       564.419922         528.978795        
+
+
+# RPS = 500
+Service                Istio              Mazu              
+details-v1             50.502604          56.717634         
+productpage-v1         66.447754          0.000000          
+ratings-v1             45.454799          76.538504         
+reviews-v3             57.157812          53.143066         
+istiod                 62.454241          57.359375         
+kube-apiserver         570.022321         109.646205        
+kube-apiserver-2       606.935547         560.920898        
+
+
+# RPS = 600
+Service                Istio              Mazu              
+details-v1             50.737723          57.223214         
+productpage-v1         64.991699          0.000000          
+ratings-v1             46.294085          69.922852         
+reviews-v3             57.034375          52.278460         
+istiod                 66.375651          55.890067         
+kube-apiserver         615.462054         116.258371        
+kube-apiserver-2       531.978516         622.849330        
+
+
+# RPS = 700
+Service                Istio              Mazu              
+details-v1             52.278320          57.359375         
+productpage-v1         66.661458          37.632812         
+ratings-v1             47.505371          77.617188         
+reviews-v3             56.709821          52.565290         
+istiod                 70.184710          53.394531         
+kube-apiserver         620.112630         110.195312        
+kube-apiserver-2       534.452474         558.216797        
+
+
+# RPS = 800
+Service                Istio              Mazu              
+details-v1             51.667480          64.251116         
+productpage-v1         66.265067          0.000000          
+ratings-v1             49.267857          71.108398         
+reviews-v3             57.842285          54.046875         
+istiod                 61.871582          66.861049         
+kube-apiserver         532.060268         103.814732        
+kube-apiserver-2       606.238839         540.992746        

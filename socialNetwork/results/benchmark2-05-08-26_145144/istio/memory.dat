@@ -1,0 +1,2 @@
+# RPS	app/fortio-client	app/fortio-server	proxy/fortio-client	proxy/fortio-server	istiod	kube-apiserver	kube-apiserver-2
+100	21266705.066667	11298560.000000	35635968.000000	35612928.000000	50823168.000000	647528721.066667	549628024.470588

@@ -1,0 +1,86 @@
+# RPS = 100
+Service                Istio              Mazu              
+details-v1             0.225911           0.279834          
+productpage-v1         0.634256           0.000000          
+ratings-v1             0.260617           0.618569          
+reviews-v3             0.459613           0.243149          
+istiod                 0.006776           0.557742          
+kube-apiserver         0.113074           0.006393          
+kube-apiserver-2       0.148538           0.103400          
+
+
+# RPS = 200
+Service                Istio              Mazu              
+details-v1             0.387140           0.431678          
+productpage-v1         0.905448           0.000000          
+ratings-v1             0.504911           0.932761          
+reviews-v3             0.858641           0.557068          
+istiod                 0.003469           0.782014          
+kube-apiserver         0.154845           0.003478          
+kube-apiserver-2       0.099303           0.139025          
+
+
+# RPS = 300
+Service                Istio              Mazu              
+details-v1             0.469000           0.677323          
+productpage-v1         1.200105           0.000000          
+ratings-v1             0.997927           1.501377          
+reviews-v3             1.256361           0.769402          
+istiod                 0.005302           1.304703          
+kube-apiserver         0.107151           0.003699          
+kube-apiserver-2       0.138476           0.105142          
+
+
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             0.712792           0.954611          
+productpage-v1         1.702927           0.000000          
+ratings-v1             1.311600           1.832486          
+reviews-v3             1.517118           0.949576          
+istiod                 0.004158           1.567262          
+kube-apiserver         0.154885           0.006630          
+kube-apiserver-2       0.120531           0.109405          
+
+
+# RPS = 500
+Service                Istio              Mazu              
+details-v1             0.911176           1.011222          
+productpage-v1         1.957951           0.000000          
+ratings-v1             1.505923           2.590168          
+reviews-v3             2.003480           1.229860          
+istiod                 0.004541           2.115510          
+kube-apiserver         0.112353           0.007939          
+kube-apiserver-2       0.169122           0.114079          
+
+
+# RPS = 600
+Service                Istio              Mazu              
+details-v1             0.957879           0.946076          
+productpage-v1         2.132400           0.000000          
+ratings-v1             1.437111           3.038017          
+reviews-v3             1.734567           0.994939          
+istiod                 0.005222           2.325273          
+kube-apiserver         0.171888           0.009909          
+kube-apiserver-2       0.106483           0.169544          
+
+
+# RPS = 700
+Service                Istio              Mazu              
+details-v1             1.148666           0.573593          
+productpage-v1         2.373962           3.183150          
+ratings-v1             1.478343           1.551433          
+reviews-v3             1.965607           0.627578          
+istiod                 0.007904           1.230614          
+kube-apiserver         0.165101           0.009902          
+kube-apiserver-2       0.093700           0.109701          
+
+
+# RPS = 800
+Service                Istio              Mazu              
+details-v1             1.107209           1.085397          
+productpage-v1         2.415534           0.000000          
+ratings-v1             1.423485           2.721664          
+reviews-v3             2.245383           0.902679          
+istiod                 0.005318           2.159960          
+kube-apiserver         0.104872           0.008177          
+kube-apiserver-2       0.142636           0.101596          

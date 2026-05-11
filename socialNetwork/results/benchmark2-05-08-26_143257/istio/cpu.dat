@@ -1,0 +1,2 @@
+# RPS	app/fortio-client	app/fortio-server	proxy/fortio-client	proxy/fortio-server	istiod	kube-apiserver	kube-apiserver-2
+1000	0.182430	0.198063	0.928782	1.687753	0.002612	0.159983	0.115782

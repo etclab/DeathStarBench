@@ -1,0 +1,86 @@
+# RPS = 100
+Service                Istio              Mazu              
+details-v1             42.204102          50.537109         
+productpage-v1         51.494629          0.000000          
+ratings-v1             45.477121          60.118652         
+reviews-v3             46.853237          0.000000          
+istiod                 59.302083          49.397135         
+kube-apiserver         581.983817         53.910156         
+kube-apiserver-2       548.144043         0.000000          
+
+
+# RPS = 200
+Service                Istio              Mazu              
+details-v1             42.644531          51.587054         
+productpage-v1         58.444196          0.000000          
+ratings-v1             42.632812          65.038574         
+reviews-v3             48.453125          0.000000          
+istiod                 58.477865          49.856120         
+kube-apiserver         547.559570         58.449777         
+kube-apiserver-2       617.323661         0.000000          
+
+
+# RPS = 300
+Service                Istio              Mazu              
+details-v1             45.774554          55.058105         
+productpage-v1         61.858073          0.000000          
+ratings-v1             44.018880          63.418620         
+reviews-v3             52.406250          0.000000          
+istiod                 61.343099          51.048549         
+kube-apiserver         637.665527         51.360491         
+kube-apiserver-2       528.675781         0.000000          
+
+
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             48.738281          53.742188         
+productpage-v1         63.466518          0.000000          
+ratings-v1             45.818638          72.359375         
+reviews-v3             52.187988          0.000000          
+istiod                 64.815848          52.866699         
+kube-apiserver         606.789062         66.773438         
+kube-apiserver-2       549.736607         51.926339         
+
+
+# RPS = 500
+Service                Istio              Mazu              
+details-v1             51.409040          56.997210         
+productpage-v1         67.251302          0.000000          
+ratings-v1             47.593750          72.975586         
+reviews-v3             58.865885          51.542969         
+istiod                 59.771484          53.671317         
+kube-apiserver         538.034598         64.199219         
+kube-apiserver-2       604.082031         46.586914         
+
+
+# RPS = 600
+Service                Istio              Mazu              
+details-v1             51.194336          57.396094         
+productpage-v1         68.477214          0.000000          
+ratings-v1             47.139160          77.731585         
+reviews-v3             59.821429          0.000000          
+istiod                 60.386719          52.788086         
+kube-apiserver         533.503906         68.002232         
+kube-apiserver-2       584.575195         0.000000          
+
+
+# RPS = 700
+Service                Istio              Mazu              
+details-v1             56.716797          44.277344         
+productpage-v1         70.906250          53.297433         
+ratings-v1             47.239583          71.467773         
+reviews-v3             58.236607          0.000000          
+istiod                 65.335938          54.695312         
+kube-apiserver         595.166853         66.171387         
+kube-apiserver-2       540.552734         0.000000          
+
+
+# RPS = 800
+Service                Istio              Mazu              
+details-v1             51.035156          58.481027         
+productpage-v1         64.523926          0.000000          
+ratings-v1             45.786272          77.865513         
+reviews-v3             58.264509          0.000000          
+istiod                 66.302455          54.739397         
+kube-apiserver         547.265625         66.574777         
+kube-apiserver-2       599.578683         0.000000          

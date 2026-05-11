@@ -1,0 +1,102 @@
+# RPS = 100
+Service                Istio              Mazu              
+details-v1             41.844308          48.380859         
+fortio-client          72.959821          71.959821         
+fortio-server          80.431641          82.647461         
+productpage-v1         52.623047          59.652902         
+ratings-v1             41.912388          0.000000          
+reviews-v3             47.277832          51.710286         
+istiod                 62.799479          0.000000          
+kube-apiserver         585.930804         53.515625         
+kube-apiserver-2       543.802455         0.000000          
+
+
+# RPS = 200
+Service                Istio              Mazu              
+details-v1             44.390625          49.694196         
+fortio-client          76.402344          77.339286         
+fortio-server          80.032552          81.726562         
+productpage-v1         62.170201          66.581473         
+ratings-v1             43.099888          0.000000          
+reviews-v3             51.117746          55.343750         
+istiod                 76.727121          39.364583         
+kube-apiserver         537.459263         57.571429         
+kube-apiserver-2       578.737630         0.000000          
+
+
+# RPS = 300
+Service                Istio              Mazu              
+details-v1             42.185059          50.444661         
+fortio-client          70.112630          74.973958         
+fortio-server          73.969866          81.254464         
+productpage-v1         61.838170          69.847005         
+ratings-v1             44.671875          0.000000          
+reviews-v3             51.922363          50.487630         
+istiod                 65.883301          0.000000          
+kube-apiserver         530.401228         60.826660         
+kube-apiserver-2       598.584263         0.000000          
+
+
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             45.181641          54.322545         
+fortio-client          76.331250          80.005371         
+fortio-server          81.375000          79.460938         
+productpage-v1         62.490885          73.411830         
+ratings-v1             46.047991          0.000000          
+reviews-v3             53.237793          53.571615         
+istiod                 72.808594          0.000000          
+kube-apiserver         545.621094         64.821289         
+kube-apiserver-2       580.658482         0.000000          
+
+
+# RPS = 500
+Service                Istio              Mazu              
+details-v1             50.412388          55.182129         
+fortio-client          66.656250          72.068080         
+fortio-server          81.311035          81.473307         
+productpage-v1         67.814941          76.101562         
+ratings-v1             44.244629          0.000000          
+reviews-v3             58.292411          46.448242         
+istiod                 68.118304          0.000000          
+kube-apiserver         619.012835         65.276367         
+kube-apiserver-2       528.271763         31.429688         
+
+
+# RPS = 600
+Service                Istio              Mazu              
+details-v1             50.970982          56.827474         
+fortio-client          78.576660          74.569336         
+fortio-server          76.829427          82.807617         
+productpage-v1         65.863281          75.380859         
+ratings-v1             49.089844          58.707031         
+reviews-v3             58.752790          54.093750         
+istiod                 73.829427          0.000000          
+kube-apiserver         552.086496         54.572545         
+kube-apiserver-2       598.859375         0.000000          
+
+
+# RPS = 700
+Service                Istio              Mazu              
+details-v1             50.525670          61.332031         
+fortio-client          75.929688          76.553013         
+fortio-server          82.879464          82.370536         
+productpage-v1         69.601074          78.201451         
+ratings-v1             45.416016          0.000000          
+reviews-v3             58.215402          54.567057         
+istiod                 75.037946          0.000000          
+kube-apiserver         598.238839         68.223214         
+kube-apiserver-2       526.689174         0.000000          
+
+
+# RPS = 800
+Service                Istio              Mazu              
+details-v1             53.893415          54.227121         
+fortio-client          71.766183          83.466309         
+fortio-server          75.386719          85.192383         
+productpage-v1         68.349609          68.874442         
+ratings-v1             46.727865          0.000000          
+reviews-v3             57.567969          55.167969         
+istiod                 67.620443          0.000000          
+kube-apiserver         544.740513         67.223958         
+kube-apiserver-2       580.216797         31.310547         

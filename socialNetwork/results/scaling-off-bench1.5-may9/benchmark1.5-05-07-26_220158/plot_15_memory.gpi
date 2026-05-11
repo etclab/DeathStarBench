@@ -1,0 +1,26 @@
+load "style.gpi"
+
+set terminal pdfcairo enhanced color
+set output "plot_15_memory.pdf"
+
+set xlabel "Service"
+set ylabel "Memory (MB)"
+set key top left
+set grid ytics
+set tics nomirror
+
+set style data histogram
+set style histogram clustered gap 1
+set style fill solid 0.8 border -1
+set boxwidth 0.9
+
+set xtics rotate by -30
+
+array RPS_VALS[5] = [20, 40, 60, 80, 100]
+
+do for [i=1:|RPS_VALS|] {
+    set title sprintf("Memory Usage: Istio vs Mazu (%d QPS)", RPS_VALS[i])
+
+    plot 'memory_combined.dat' index (i-1) using 2:xtic(1) title "Istio" linestyle 1, \
+         ''                    index (i-1) using 3          title "Mazu"  linestyle 2
+}

@@ -1,0 +1,25 @@
+load "../style.gpi"
+
+set terminal pdfcairo enhanced color
+set output "cpu_comparison.pdf"
+
+set style data histogram
+set style histogram clustered gap 1
+set style fill solid 0.8 border -1
+
+set boxwidth 0.9
+
+set ylabel "CPU Usage (cores)" font "Helvetica, 16"
+set xlabel "Component" font "Helvetica, 16"
+set title "CPU Usage: Istio vs Mazu (50 RPS, 4min)" font "Helvetica, 16"
+
+set key top left font "Helvetica, 12"
+set xtics font "Helvetica, 12" rotate by 25 right
+set ytics font "Helvetica, 12"
+
+set grid ytics lt 0 lw 0.5
+
+set logscale y
+
+plot "plot_cpu.dat" using 2:xtic(1) title columnheader(2) ls 1, \
+     '' using 3 title columnheader(3) ls 2

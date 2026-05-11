@@ -1,0 +1,7 @@
+Component	Istio	Mazu
+app/fortio-client	0.18243	0.014639
+app/fortio-server	0.198063	0.020227
+proxy/fortio-client	0.928782	1.885027
+proxy/fortio-server	1.687753	1.347099
+istiod	0.002612	0.047551
+kube-apiserver	0.1378825	0.1307325
