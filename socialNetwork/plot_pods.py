@@ -28,7 +28,7 @@ RPS_VALUES = [50, 100, 200, 300, 400, 500, 600, 700,
               800, 900, 1000, 1100, 1200, 1300, 1400, 1500]
 # Subset of RPS_VALUES to overlay in the scaling figure (plot_pod_scaling.pdf).
 # Edit this list to compare a different range of rps values.
-SCALING_RPS_VALUES = [400, 500, 600, 700, 800]
+SCALING_RPS_VALUES = [500, 600, 700, 800]
 APP_COLS = ["details-v1", "productpage-v1", "ratings-v1",
             "reviews-v1", "reviews-v2", "reviews-v3"]
 SAMPLE_EVERY = 10  # seconds (== rows, since rows are 1s apart)

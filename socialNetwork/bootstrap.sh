@@ -14,6 +14,7 @@ mazu_echo() {
 mazu_echo "Installing system packages..."
 sudo apt-get update
 sudo apt-get install -y python3-pip build-essential
+sudo apt-get install -y python3-matplotlib
 
 # ---------- gnuplot ----------
 sudo apt-get install -y gnuplot

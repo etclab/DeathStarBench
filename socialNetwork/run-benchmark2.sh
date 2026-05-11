@@ -102,19 +102,22 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@pc783.emulab.net"
+        NODE0="apoudel@c220g1-031111.wisc.cloudlab.us"
         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
             echo "First run: setting up trinc/swtpm on all nodes..."
             ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d apt.emulab.net apt033 apt030 apt029 apt036
         fi
-        ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
+        ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3 node-4 node-5; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
         echo "TPMs created on all nodes"
 
         sleep 60s
 
         # ---- Install Istio / Mazu ----
         if [[ "$STRAT" == "istio" ]]; then
+            ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
+            ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
+
             ${SCRIPT_DIR}/setup_social_network.sh install-istio
         else
             MAZU_BENCHMARK_INLINE_ENABLED=true ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
@@ -182,17 +185,22 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Run fortio load (direct pod-to-pod, no ingress) ----
         kubectl exec "$FORTIO_CLIENT_POD" -c fortio-client -- \
-            fortio load -qps "$RPS" -t "${DURATION}s" \
+            fortio load \
+            -qps "$RPS" \
+            -t "${DURATION}s" \
             -p "50,90,95,99" \
             -json /dev/stdout \
+            -c 32 \
+            -nocatchup \
+            -uniform \
             http://fortio-server:8080/ > "$RES_DIR/fortio_${RPS}.json"
 
         BENCH_END=$(date +%s)
 
         echo "Fortio results saved to $RES_DIR/fortio_${RPS}.json"
 
-        # ---- Collect CPU/memory metrics ----
-        ${SCRIPT_DIR}/collect_metrics.sh "$RES_DIR" "$DURATION" "$BENCH_START" "$RPS" || \
+        # ---- Collect CPU/memory metrics (range queries: app + proxy + istiod + apiserver) ----
+        ${SCRIPT_DIR}/collect_metrics_with_app.sh "$RES_DIR" "$DURATION" "$BENCH_START" "$RPS" || \
             echo "WARNING: CPU/memory metrics collection failed for RPS=$RPS"
 
         # ---- Collect inline benchmark histograms (Mazu strategies only) ----
@@ -206,7 +214,7 @@ for STRAT in "${STRATEGIES[@]}"; do
         ${SCRIPT_DIR}/setup_social_network.sh uninstall-prometheus
 
         # --- Generate .dat files ---
-        python3 "${SCRIPT_DIR}/generate_dat.py" "$RES_DIR" || \
+        python3 "${SCRIPT_DIR}/generate_dat_with_app.py" "$RES_DIR" || \
             echo "WARNING: CPU/memory .dat file generation failed"
 
         python3 "${SCRIPT_DIR}/generate_inline_dat.py" "$RES_DIR" || \
@@ -220,6 +228,10 @@ done
 echo "Generating consolidated plot data..."
 python3 "${SCRIPT_DIR}/generate_plot_data.py" "$RESULTS_DIR" "${STRATEGIES[@]}" || \
     echo "WARNING: Plot data generation failed"
+
+echo "Rendering combined CPU/memory time-series PDFs (matplotlib)..."
+python3 "${SCRIPT_DIR}/generate_timeseries_plots.py" "$RESULTS_DIR" "${STRATEGIES[@]}" || \
+    echo "WARNING: Time-series plot generation failed"
 
 echo "Copying gnuplot scripts and generating PDFs..."
 for gpi in plot_cpu.gpi plot_memory.gpi plot_e2e_latency.gpi plot_latency_breakdown.gpi plot_latency_breakdown_v2.gpi; do

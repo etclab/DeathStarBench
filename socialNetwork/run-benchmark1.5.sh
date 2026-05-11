@@ -24,7 +24,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Configuration ---
-STRATEGIES=(${STRATEGIES:-"st5-AttUpd" "istio"})
+STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
 
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
@@ -34,14 +34,17 @@ if [[ "$SCALE_ENABLED" == "true" ]]; then
     # the below rps_values are used for benchmark when keep alive is on; 
     # scaling is on; cpu cores for istio-proxy and application container are set to 2
     # measures the cost of scaling
-    RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500})
+    # RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500 600 700 800 900 1000})
+    # RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500})
+    RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500 600 700 800 900 1000 1100 1200})
     DURATION=${DURATION:-120}
 else
     # the below rps_values are used for benchmark when keep alive is off; 
     # scaling is off; cpu cores for istio-proxy and application container are set to 2
     # measures the cost of repeated connection setup with fixed number of pods
-    RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300 350 400 450 500})
-    DURATION=${DURATION:-240}
+    # RPS_VALUES=(${RPS_VALUES:-50 100 150 200 250 300 350 400 450 500})
+    RPS_VALUES=(${RPS_VALUES:-100 200 300 400 500 600 700 800})
+    DURATION=${DURATION:-120}
 fi
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
 
@@ -117,23 +120,23 @@ for STRAT in "${STRATEGIES[@]}"; do
             echo "API server count: $APISERVER_COUNT. Waiting for all kube-apiserver pods to become Ready..."
             echo "Waiting for all kube-apiserver pods to become Ready..."
             until [ "$(kubectl -n kube-system get pods -l component=kube-apiserver -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' 2>/dev/null | grep -c True)" -ge "$APISERVER_COUNT" ]; do
-                sleep 3
+                sleep 5
             done
             echo "All kube-apiserver pods are Ready"
 
             # ---- Create fresh TPMs ----
             echo "Creating TPMs on all nodes..."
-            NODE0="apoudel@pc783.emulab.net"
+            NODE0="apoudel@c220g1-031111.wisc.cloudlab.us"
             SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             # On first run, clone trinc repo and set up TPM libs on all nodes
             if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
                 echo "First run: setting up trinc/swtpm on all nodes..."
                 ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d apt.emulab.net apt033 apt030 apt029 apt036
             fi
-            ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
+            ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3 node-4 node-5; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
             echo "TPMs created on all nodes"
 
-            sleep 60s
+            sleep 60
 
             # ---- Install Istio / Mazu ----
             if [[ "$STRAT" == "istio" ]]; then
@@ -193,7 +196,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # Kill any leftover port-forward on PROM_PORT
             lsof -ti :${PROM_PORT} | xargs -r kill 2>/dev/null || true
-            sleep 1
+            sleep 5
 
             # Fresh Prometheus for each RPS run
             ${SCRIPT_DIR}/setup_social_network.sh uninstall-prometheus
@@ -208,6 +211,8 @@ for STRAT in "${STRATEGIES[@]}"; do
             PF_PID=$!
             export PROM_URL="http://localhost:${PROM_PORT}"
 
+            sleep 5
+
             # Wait until Prometheus is reachable via port-forward
             echo "Waiting for Prometheus to be reachable at ${PROM_URL}..."
             for i in $(seq 1 30); do
@@ -218,7 +223,7 @@ for STRAT in "${STRATEGIES[@]}"; do
                 if [ "$i" -eq 30 ]; then
                     echo "WARNING: Prometheus not reachable after 30s, metrics collection may fail"
                 fi
-                sleep 1
+                sleep 5
             done
 
             OUT_FILE="$RES_DIR/${RPS}.txt"
@@ -228,11 +233,32 @@ for STRAT in "${STRATEGIES[@]}"; do
             # Record start time for Prometheus queries
             BENCH_START=$(date +%s)
 
+            POD_POLL_PID=""
+            if [[ "$SCALE_ENABLED" == "true" ]]; then
+                POD_CSV="$RES_DIR/pods-${RPS}.csv"
+                echo "timestamp,app,version,phase,ready" > "$POD_CSV"
+                (
+                    while true; do
+                        ts=$(date +%s)
+                        kubectl get pods -l 'app in (productpage,details,reviews,ratings)' \
+                            -o jsonpath='{range .items[*]}{.metadata.labels.app}{","}{.metadata.labels.version}{","}{.status.phase}{","}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' 2>/dev/null \
+                          | awk -v ts="$ts" 'NF{print ts","$0}' >> "$POD_CSV" &
+                        sleep 1
+                    done
+                ) &
+                POD_POLL_PID=$!
+            fi
+
             ${SCRIPT_DIR}/../wrk2/wrk -D exp -t 16 -c 128 -d ${DURATION} -L \
                 -s ${SCRIPT_DIR}/wrk2/scripts/social-network/read-productpage.lua \
                 http://$INGRESS_IP:$INGRESS_PORT -R ${RPS} > "${OUT_FILE}"
 
             BENCH_END=$(date +%s)
+
+            if [[ -n "$POD_POLL_PID" ]]; then
+                kill "$POD_POLL_PID" 2>/dev/null || true
+                wait "$POD_POLL_PID" 2>/dev/null || true
+            fi
 
             echo "wrk2 results saved to ${OUT_FILE}"
 
@@ -272,5 +298,11 @@ cp "${SCRIPT_DIR}/results/style.gpi" "$RESULTS_DIR/" || true
     gnuplot plot_15_cpu.gpi || echo "WARNING: plot_15_cpu.gpi failed"
     gnuplot plot_15_memory.gpi || echo "WARNING: plot_15_memory.gpi failed"
 )
+
+# --- Summarize and plot per-second pod-readiness data ---
+python3 "${SCRIPT_DIR}/summarize_pods.py" "$RESULTS_DIR" || \
+    echo "WARNING: summarize_pods.py failed"
+python3 "${SCRIPT_DIR}/plot_pods.py" "$RESULTS_DIR" || \
+    echo "WARNING: plot_pods.py failed"
 
 echo "=== All benchmark 1.5 runs complete. Results in ${RESULTS_DIR} ==="

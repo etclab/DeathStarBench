@@ -58,7 +58,7 @@ metadata:
     app: details
     version: v1
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: details
@@ -75,13 +75,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-details
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: node-role.kubernetes.io/control-plane
-      #           operator: DoesNotExist
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: details
         image: docker.io/istio/examples-bookinfo-details-v1:1.20.3
@@ -128,7 +128,7 @@ metadata:
     app: ratings
     version: v1
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: ratings
@@ -145,13 +145,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-ratings
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: node-role.kubernetes.io/control-plane
-      #           operator: DoesNotExist
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: ratings
         image: docker.io/istio/examples-bookinfo-ratings-v1:1.20.3
@@ -190,124 +190,124 @@ metadata:
   labels:
     account: reviews
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: reviews-v1
-  labels:
-    app: reviews
-    version: v1
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: reviews
-      version: v1
-  template:
-    metadata:
-      annotations:
-        sidecar.istio.io/proxyCPULimit: "2"
-        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
-        sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
-        sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
-      labels:
-        app: reviews
-        version: v1
-    spec:
-      serviceAccountName: bookinfo-reviews
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: node-role.kubernetes.io/control-plane
-      #           operator: DoesNotExist
-      containers:
-      - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: LOG_DIR
-          value: "/tmp/logs"
-        ports:
-        - containerPort: 9080
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: wlp-output
-          mountPath: /opt/ibm/wlp/output
-        resources:
-          limits:
-            cpu: "2"
-            memory: "1Gi"
-          requests:
-            cpu: "1"
-            memory: "512Mi"
-      volumes:
-      - name: wlp-output
-        emptyDir: {}
-      - name: tmp
-        emptyDir: {}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: reviews-v2
-  labels:
-    app: reviews
-    version: v2
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: reviews
-      version: v2
-  template:
-    metadata:
-      annotations:
-        sidecar.istio.io/proxyCPULimit: "2"
-        # sidecar.istio.io/proxyMemoryLimit: "1Gi"
-        sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
-        sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
-      labels:
-        app: reviews
-        version: v2
-    spec:
-      serviceAccountName: bookinfo-reviews
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: node-role.kubernetes.io/control-plane
-      #           operator: DoesNotExist
-      containers:
-      - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v2:1.20.3
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: LOG_DIR
-          value: "/tmp/logs"
-        ports:
-        - containerPort: 9080
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: wlp-output
-          mountPath: /opt/ibm/wlp/output
-        resources:
-          limits:
-            cpu: "2"
-            memory: "1Gi"
-          requests:
-            cpu: "1"
-            memory: "512Mi"
-      volumes:
-      - name: wlp-output
-        emptyDir: {}
-      - name: tmp
-        emptyDir: {}
----
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: reviews-v1
+#   labels:
+#     app: reviews
+#     version: v1
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: reviews
+#       version: v1
+#   template:
+#     metadata:
+#       annotations:
+#         sidecar.istio.io/proxyCPULimit: "2"
+#         # sidecar.istio.io/proxyMemoryLimit: "1Gi"
+#         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+#         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+#       labels:
+#         app: reviews
+#         version: v1
+#     spec:
+#       serviceAccountName: bookinfo-reviews
+#       affinity:
+#         nodeAffinity:
+#           requiredDuringSchedulingIgnoredDuringExecution:
+#             nodeSelectorTerms:
+#             - matchExpressions:
+#               - key: node-role.kubernetes.io/control-plane
+#                 operator: DoesNotExist
+#       containers:
+#       - name: reviews
+#         image: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
+#         imagePullPolicy: IfNotPresent
+#         env:
+#         - name: LOG_DIR
+#           value: "/tmp/logs"
+#         ports:
+#         - containerPort: 9080
+#         volumeMounts:
+#         - name: tmp
+#           mountPath: /tmp
+#         - name: wlp-output
+#           mountPath: /opt/ibm/wlp/output
+#         resources:
+#           limits:
+#             cpu: "2"
+#             memory: "1Gi"
+#           requests:
+#             cpu: "1"
+#             memory: "512Mi"
+#       volumes:
+#       - name: wlp-output
+#         emptyDir: {}
+#       - name: tmp
+#         emptyDir: {}
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: reviews-v2
+#   labels:
+#     app: reviews
+#     version: v2
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: reviews
+#       version: v2
+#   template:
+#     metadata:
+#       annotations:
+#         sidecar.istio.io/proxyCPULimit: "2"
+#         # sidecar.istio.io/proxyMemoryLimit: "1Gi"
+#         sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+#         sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+#       labels:
+#         app: reviews
+#         version: v2
+#     spec:
+#       serviceAccountName: bookinfo-reviews
+#       affinity:
+#         nodeAffinity:
+#           requiredDuringSchedulingIgnoredDuringExecution:
+#             nodeSelectorTerms:
+#             - matchExpressions:
+#               - key: node-role.kubernetes.io/control-plane
+#                 operator: DoesNotExist
+#       containers:
+#       - name: reviews
+#         image: docker.io/istio/examples-bookinfo-reviews-v2:1.20.3
+#         imagePullPolicy: IfNotPresent
+#         env:
+#         - name: LOG_DIR
+#           value: "/tmp/logs"
+#         ports:
+#         - containerPort: 9080
+#         volumeMounts:
+#         - name: tmp
+#           mountPath: /tmp
+#         - name: wlp-output
+#           mountPath: /opt/ibm/wlp/output
+#         resources:
+#           limits:
+#             cpu: "2"
+#             memory: "1Gi"
+#           requests:
+#             cpu: "1"
+#             memory: "512Mi"
+#       volumes:
+#       - name: wlp-output
+#         emptyDir: {}
+#       - name: tmp
+#         emptyDir: {}
+# ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -316,7 +316,7 @@ metadata:
     app: reviews
     version: v3
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: reviews
@@ -333,13 +333,13 @@ spec:
         version: v3
     spec:
       serviceAccountName: bookinfo-reviews
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: node-role.kubernetes.io/control-plane
-      #           operator: DoesNotExist
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: reviews
         image: docker.io/istio/examples-bookinfo-reviews-v3:1.20.3
@@ -399,7 +399,7 @@ metadata:
     app: productpage
     version: v1
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: productpage
@@ -419,13 +419,13 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookinfo-productpage
-      # affinity:
-      #   nodeAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: node-role.kubernetes.io/control-plane
-      #           operator: DoesNotExist
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
       - name: productpage
         image: docker.io/istio/examples-bookinfo-productpage-v1:1.20.3

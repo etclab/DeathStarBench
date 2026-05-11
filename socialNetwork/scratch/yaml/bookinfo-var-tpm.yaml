@@ -66,8 +66,8 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar.istio.io/proxyCPULimit: "4"
-        sidecar.istio.io/proxyMemoryLimit: "2Gi"
+        sidecar.istio.io/proxyCPULimit: "8"
+        sidecar.istio.io/proxyMemoryLimit: "4Gi"
         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -90,8 +90,8 @@ spec:
         - containerPort: 9080
         resources:
           limits:
-            cpu: "4"
-            memory: "2Gi"
+            cpu: "8"
+            memory: "4Gi"
           requests:
             cpu: "1"
             memory: "512Mi"
@@ -136,8 +136,8 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar.istio.io/proxyCPULimit: "4"
-        sidecar.istio.io/proxyMemoryLimit: "2Gi"
+        sidecar.istio.io/proxyCPULimit: "8"
+        sidecar.istio.io/proxyMemoryLimit: "4Gi"
         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -160,8 +160,8 @@ spec:
         - containerPort: 9080
         resources:
           limits:
-            cpu: "4"
-            memory: "2Gi"
+            cpu: "8"
+            memory: "4Gi"
           requests:
             cpu: "1"
             memory: "512Mi"
@@ -190,124 +190,124 @@ metadata:
   labels:
     account: reviews
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: reviews-v1
-  labels:
-    app: reviews
-    version: v1
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: reviews
-      version: v1
-  template:
-    metadata:
-      annotations:
-        sidecar.istio.io/proxyCPULimit: "4"
-        sidecar.istio.io/proxyMemoryLimit: "2Gi"
-        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
-        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
-      labels:
-        app: reviews
-        version: v1
-    spec:
-      serviceAccountName: bookinfo-reviews
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
-      containers:
-      - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: LOG_DIR
-          value: "/tmp/logs"
-        ports:
-        - containerPort: 9080
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: wlp-output
-          mountPath: /opt/ibm/wlp/output
-        resources:
-          limits:
-            cpu: "4"
-            memory: "2Gi"
-          requests:
-            cpu: "1"
-            memory: "512Mi"
-      volumes:
-      - name: wlp-output
-        emptyDir: {}
-      - name: tmp
-        emptyDir: {}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: reviews-v2
-  labels:
-    app: reviews
-    version: v2
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: reviews
-      version: v2
-  template:
-    metadata:
-      annotations:
-        sidecar.istio.io/proxyCPULimit: "4"
-        sidecar.istio.io/proxyMemoryLimit: "2Gi"
-        sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
-        sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
-      labels:
-        app: reviews
-        version: v2
-    spec:
-      serviceAccountName: bookinfo-reviews
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
-      containers:
-      - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v2:1.20.3
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: LOG_DIR
-          value: "/tmp/logs"
-        ports:
-        - containerPort: 9080
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: wlp-output
-          mountPath: /opt/ibm/wlp/output
-        resources:
-          limits:
-            cpu: "4"
-            memory: "2Gi"
-          requests:
-            cpu: "1"
-            memory: "512Mi"
-      volumes:
-      - name: wlp-output
-        emptyDir: {}
-      - name: tmp
-        emptyDir: {}
----
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: reviews-v1
+#   labels:
+#     app: reviews
+#     version: v1
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: reviews
+#       version: v1
+#   template:
+#     metadata:
+#       annotations:
+#         sidecar.istio.io/proxyCPULimit: "8"
+#         sidecar.istio.io/proxyMemoryLimit: "4Gi"
+#         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+#         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+#       labels:
+#         app: reviews
+#         version: v1
+#     spec:
+#       serviceAccountName: bookinfo-reviews
+#       affinity:
+#         nodeAffinity:
+#           requiredDuringSchedulingIgnoredDuringExecution:
+#             nodeSelectorTerms:
+#             - matchExpressions:
+#               - key: node-role.kubernetes.io/control-plane
+#                 operator: DoesNotExist
+#       containers:
+#       - name: reviews
+#         image: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
+#         imagePullPolicy: IfNotPresent
+#         env:
+#         - name: LOG_DIR
+#           value: "/tmp/logs"
+#         ports:
+#         - containerPort: 9080
+#         volumeMounts:
+#         - name: tmp
+#           mountPath: /tmp
+#         - name: wlp-output
+#           mountPath: /opt/ibm/wlp/output
+#         resources:
+#           limits:
+#             cpu: "8"
+#             memory: "4Gi"
+#           requests:
+#             cpu: "1"
+#             memory: "512Mi"
+#       volumes:
+#       - name: wlp-output
+#         emptyDir: {}
+#       - name: tmp
+#         emptyDir: {}
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: reviews-v2
+#   labels:
+#     app: reviews
+#     version: v2
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: reviews
+#       version: v2
+#   template:
+#     metadata:
+#       annotations:
+#         sidecar.istio.io/proxyCPULimit: "8"
+#         sidecar.istio.io/proxyMemoryLimit: "4Gi"
+#         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+#         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+#       labels:
+#         app: reviews
+#         version: v2
+#     spec:
+#       serviceAccountName: bookinfo-reviews
+#       affinity:
+#         nodeAffinity:
+#           requiredDuringSchedulingIgnoredDuringExecution:
+#             nodeSelectorTerms:
+#             - matchExpressions:
+#               - key: node-role.kubernetes.io/control-plane
+#                 operator: DoesNotExist
+#       containers:
+#       - name: reviews
+#         image: docker.io/istio/examples-bookinfo-reviews-v2:1.20.3
+#         imagePullPolicy: IfNotPresent
+#         env:
+#         - name: LOG_DIR
+#           value: "/tmp/logs"
+#         ports:
+#         - containerPort: 9080
+#         volumeMounts:
+#         - name: tmp
+#           mountPath: /tmp
+#         - name: wlp-output
+#           mountPath: /opt/ibm/wlp/output
+#         resources:
+#           limits:
+#             cpu: "8"
+#             memory: "4Gi"
+#           requests:
+#             cpu: "1"
+#             memory: "512Mi"
+#       volumes:
+#       - name: wlp-output
+#         emptyDir: {}
+#       - name: tmp
+#         emptyDir: {}
+# ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -324,8 +324,8 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar.istio.io/proxyCPULimit: "4"
-        sidecar.istio.io/proxyMemoryLimit: "2Gi"
+        sidecar.istio.io/proxyCPULimit: "8"
+        sidecar.istio.io/proxyMemoryLimit: "4Gi"
         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -356,8 +356,8 @@ spec:
           mountPath: /opt/ibm/wlp/output
         resources:
           limits:
-            cpu: "4"
-            memory: "2Gi"
+            cpu: "8"
+            memory: "4Gi"
           requests:
             cpu: "1"
             memory: "512Mi"
@@ -410,8 +410,8 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9080"
         prometheus.io/path: "/metrics"
-        sidecar.istio.io/proxyCPULimit: "4"
-        sidecar.istio.io/proxyMemoryLimit: "2Gi"
+        sidecar.istio.io/proxyCPULimit: "8"
+        sidecar.istio.io/proxyMemoryLimit: "4Gi"
         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -437,8 +437,8 @@ spec:
           mountPath: /tmp
         resources:
           limits:
-            cpu: "4"
-            memory: "2Gi"
+            cpu: "8"
+            memory: "4Gi"
           requests:
             cpu: "1"
             memory: "512Mi"

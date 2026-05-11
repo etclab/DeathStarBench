@@ -36,6 +36,7 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "8"
         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
@@ -95,6 +96,7 @@ spec:
   template:
     metadata:
       annotations:
+        sidecar.istio.io/proxyCPULimit: "8"
         sidecar.istio.io/userVolume: '[{"name":"tpm-pubkey-volume","configMap":{"name":"tpm-pubkey"}}, {"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
         sidecar.istio.io/userVolumeMount: '[{"name":"tpm-pubkey-volume","mountPath":"/etc/tpm-keys","readOnly":true}, {"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
       labels:
