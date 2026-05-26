@@ -1,0 +1,68 @@
+# Individual values from 10 runs:
+# --- benchmark2-05-25-26_144138 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.45	18.80	66.18	0.05	208.00
+# p90	2.41	0.90	33.39	96.19	0.09	321.85
+# p95	2.50	0.97	42.16	99.94	0.10	350.49
+# p99	18.11	1.81	49.18	219.50	4.02	412.25
+# --- benchmark2-05-25-26_145319 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.46	18.81	66.76	0.05	204.43
+# p90	2.42	0.90	33.34	96.36	0.09	317.55
+# p95	2.50	0.96	41.97	102.44	0.10	347.91
+# p99	18.89	1.65	48.87	220.49	3.83	400.88
+# --- benchmark2-05-25-26_150518 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.46	18.90	66.89	0.05	206.78
+# p90	2.42	0.91	34.70	96.67	0.09	321.54
+# p95	2.51	0.97	43.13	114.50	0.10	351.39
+# p99	18.15	1.83	49.87	223.14	4.03	419.36
+# --- benchmark2-05-25-26_151707 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.46	18.76	66.52	0.05	205.37
+# p90	2.42	0.91	32.90	95.95	0.09	319.87
+# p95	2.57	0.97	41.88	99.63	0.10	348.54
+# p99	16.31	1.86	49.06	216.60	3.75	410.78
+# --- benchmark2-05-25-26_152853 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.46	18.69	66.18	0.05	204.67
+# p90	2.41	0.90	32.07	95.79	0.09	316.09
+# p95	2.50	0.96	41.57	99.49	0.10	345.07
+# p99	17.12	1.65	49.17	216.10	4.03	397.22
+# --- benchmark2-05-25-26_155609 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.45	18.76	65.58	0.05	206.14
+# p90	2.42	0.90	32.79	96.19	0.09	320.97
+# p95	2.79	0.97	41.74	100.72	0.10	349.58
+# p99	18.85	1.81	48.90	220.41	3.72	409.86
+# --- benchmark2-05-25-26_160757 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.45	18.80	65.81	0.05	206.77
+# p90	2.42	0.90	33.43	96.06	0.09	318.60
+# p95	2.74	0.96	42.22	99.84	0.10	348.41
+# p99	19.53	1.72	49.26	218.67	3.73	410.88
+# --- benchmark2-05-25-26_161947 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.45	18.84	66.19	0.05	205.28
+# p90	2.42	0.90	33.95	96.72	0.09	317.10
+# p95	2.50	0.96	42.57	118.55	0.10	347.22
+# p99	18.54	1.83	49.46	223.71	3.69	415.26
+# --- benchmark2-05-25-26_163149 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.74	0.46	18.85	66.78	0.05	201.98
+# p90	2.42	0.91	34.07	96.25	0.09	314.94
+# p95	2.58	0.97	42.75	99.93	0.10	345.72
+# p99	18.38	1.84	49.70	219.44	3.85	399.97
+# --- benchmark2-05-25-26_164344 ---
+# Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+# p50	1.75	0.46	18.77	66.19	0.05	205.61
+# p90	2.42	0.91	33.17	96.26	0.09	318.56
+# p95	2.72	0.97	42.24	100.60	0.10	347.50
+# p99	18.18	1.83	49.49	220.12	3.66	412.44
+#
+# === Averaged values ===
+Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+p50	1.75	0.46	18.80	66.31	0.05	205.50
+p90	2.42	0.90	33.38	96.24	0.09	318.71
+p95	2.59	0.97	42.22	103.56	0.10	348.18
+p99	18.21	1.78	49.30	219.82	3.83	408.89

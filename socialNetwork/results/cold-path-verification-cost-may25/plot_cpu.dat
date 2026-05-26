@@ -1,0 +1,90 @@
+# Individual CPU values from 10 runs:
+# --- benchmark2-05-25-26_144138 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.033185	0.019939
+# app/fortio-server	0.063766	0.035141
+# proxy/fortio-client	0.200255	5.552502
+# proxy/fortio-server	0.255168	2.742462
+# istiod	0.002574	0.118249
+# kube-apiserver	0.20387450000000001	0.193832
+# --- benchmark2-05-25-26_145319 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.033408	0.019804
+# app/fortio-server	0.056828	0.037531
+# proxy/fortio-client	0.214313	5.205474
+# proxy/fortio-server	0.228269	2.78139
+# istiod	0.002487	0.118507
+# kube-apiserver	0.1886395	0.1844225
+# --- benchmark2-05-25-26_150518 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.03212	0.020343
+# app/fortio-server	0.061382	0.0374
+# proxy/fortio-client	0.204657	5.650629
+# proxy/fortio-server	0.24932	2.667766
+# istiod	0.002939	0.134983
+# kube-apiserver	0.1814585	0.195379
+# --- benchmark2-05-25-26_151707 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.034951	0.018499
+# app/fortio-server	0.057729	0.034592
+# proxy/fortio-client	0.222416	5.303474
+# proxy/fortio-server	0.235959	2.586733
+# istiod	0.002944	0.117407
+# kube-apiserver	0.1800765	0.1875095
+# --- benchmark2-05-25-26_152853 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.03447	0.021025
+# app/fortio-server	0.062023	0.038747
+# proxy/fortio-client	0.21215	4.992567
+# proxy/fortio-server	0.252703	2.746051
+# istiod	0.002815	0.122844
+# kube-apiserver	0.18431550000000002	0.1907865
+# --- benchmark2-05-25-26_155609 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.034459	0.020279
+# app/fortio-server	0.058489	0.038268
+# proxy/fortio-client	0.215668	5.419723
+# proxy/fortio-server	0.239354	2.714465
+# istiod	0.002896	0.141126
+# kube-apiserver	0.1792495	0.1751445
+# --- benchmark2-05-25-26_160757 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.034566	0.01971
+# app/fortio-server	0.058259	0.038491
+# proxy/fortio-client	0.223538	5.145868
+# proxy/fortio-server	0.236301	2.89347
+# istiod	0.002743	0.128161
+# kube-apiserver	0.1725805	0.19407649999999999
+# --- benchmark2-05-25-26_161947 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.033221	0.018878
+# app/fortio-server	0.055631	0.038557
+# proxy/fortio-client	0.216696	5.123459
+# proxy/fortio-server	0.236408	2.887242
+# istiod	0.00278	0.124776
+# kube-apiserver	0.190414	0.1998715
+# --- benchmark2-05-25-26_163149 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.035046	0.019685
+# app/fortio-server	0.061257	0.03661
+# proxy/fortio-client	0.212268	5.412285
+# proxy/fortio-server	0.233671	2.594056
+# istiod	0.002781	0.121491
+# kube-apiserver	0.1745695	0.184039
+# --- benchmark2-05-25-26_164344 ---
+# Component	Istio	Mazu
+# app/fortio-client	0.03324	0.020792
+# app/fortio-server	0.063345	0.037717
+# proxy/fortio-client	0.195799	5.583113
+# proxy/fortio-server	0.248183	2.516192
+# istiod	0.003322	0.138521
+# kube-apiserver	0.1881485	0.1894725
+#
+# === Averaged values ===
+Component	Istio_mean	Istio_std	Mazu_mean	Mazu_std
+app/fortio-client	0.033866600000000004	0.0009606727041216712	0.0198954	0.0007818293647309206
+app/fortio-server	0.05987089999999999	0.0028364493238319404	0.0373054	0.0014428739222660993
+proxy/fortio-client	0.21177600000000002	0.00904559283727594	5.3389094	0.22036301142291953
+proxy/fortio-server	0.24153360000000004	0.00908444150059748	2.7129827000000004	0.12491772531732859
+istiod	0.0028280999999999996	0.00022782568872812487	0.1266065	0.008750297750489536
+kube-apiserver	0.18433265000000001	0.00905307052898506	0.18945335	0.007064160746920564

@@ -1,0 +1,36 @@
+load "../style.gpi"
+
+set terminal pdfcairo enhanced color font "Helvetica, 12"
+set output "latency_breakdown_v2.pdf"
+
+set style data histogram
+set style histogram rowstacked
+set style fill solid 0.8 border -1
+
+set boxwidth 0.9
+
+set ylabel "Latency (ms)" font "Helvetica, 16"
+set title "Mazu Latency Breakdown by Operation (50 RPS, 4min)" font "Helvetica, 16"
+
+set key outside bottom center font "Helvetica, 10" maxrows 2
+set xtics font "Helvetica, 12"
+set ytics font "Helvetica, 12"
+
+set grid ytics lt 0 lw 0.5
+
+DAT = "plot_latency_breakdown_v2.dat"
+
+# Stacked bars: server ops per percentile, with e2e as linespoints on top
+# Data columns: Label kc_fetch counter_att rbe_proof challenge_resp token_review e2e
+plot keyentry with linespoints ls 7 lw 4 title "fortio\\_e2e", \
+     keyentry with boxes fs solid 0.8 ls 6 title "kc\\_fetch", \
+     keyentry with boxes fs solid 0.8 ls 2 title "counter\\_attestation", \
+     keyentry with boxes fs solid 0.8 ls 1 title "rbe\\_proof", \
+     keyentry with boxes fs solid 0.8 ls 4 title "challenge\\_resp", \
+     keyentry with boxes fs solid 0.8 ls 3 title "token\\_review", \
+     DAT using 2:xtic(1) notitle ls 6, \
+     '' using 3 notitle ls 2, \
+     '' using 4 notitle ls 1, \
+     '' using 5 notitle ls 4, \
+     '' using 6 notitle ls 3, \
+     '' using 0:7 with linespoints notitle ls 7 lw 4 

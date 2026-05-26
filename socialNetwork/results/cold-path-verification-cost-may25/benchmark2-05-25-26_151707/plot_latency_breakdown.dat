@@ -1,0 +1,6 @@
+# Columns: Label | client ops (kc_fetch..token_review) | server ops (kc_fetch..token_review) | e2e
+Label	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	kc_fetch	counter_att	rbe_proof	challenge_resp	token_review	e2e
+p50	1.65	0.36	19.61	146.23	0.05	1.75	0.46	18.76	66.52	0.05	205.37
+p90	2.48	0.80	39.00	238.74	0.09	2.42	0.91	32.90	95.95	0.09	319.87
+p95	6.95	0.90	44.80	256.34	0.10	2.57	0.97	41.88	99.63	0.10	348.54
+p99	23.68	0.99	49.44	451.27	1.94	16.31	1.86	49.06	216.60	3.75	410.78
