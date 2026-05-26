@@ -19,7 +19,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: details-v1
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
   metrics:
   - type: ContainerResource
@@ -58,7 +58,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: ratings-v1
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
   metrics:
   - type: ContainerResource
@@ -97,8 +97,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: reviews-v1
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 5
   metrics:
   - type: ContainerResource
     containerResource:
@@ -136,8 +136,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: reviews-v2
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 5
   metrics:
   - type: ContainerResource
     containerResource:
@@ -175,8 +175,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: reviews-v3
-  minReplicas: 2
-  maxReplicas: 15
+  minReplicas: 1
+  maxReplicas: 5
   metrics:
   - type: ContainerResource
     containerResource:
@@ -191,7 +191,7 @@ spec:
       container: reviews
       target:
         type: Utilization
-        averageUtilization: 50
+        averageUtilization: 70
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 0
@@ -214,8 +214,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: productpage-v1
-  minReplicas: 2
-  maxReplicas: 20
+  minReplicas: 1
+  maxReplicas: 15
   metrics:
   - type: ContainerResource
     containerResource:
@@ -230,7 +230,7 @@ spec:
       container: productpage
       target:
         type: Utilization
-        averageUtilization: 50
+        averageUtilization: 70
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 0
