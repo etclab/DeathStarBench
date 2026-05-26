@@ -1,0 +1,102 @@
+# RPS = 100
+Service                Istio              Mazu              
+details-v1             38.175223          48.445312         
+productpage-v1         49.093750          57.460449         
+ratings-v1             41.357701          52.552455         
+reviews-v1             40.464193          47.367746         
+reviews-v2             38.951172          47.696777         
+reviews-v3             38.754464          48.781738         
+istiod                 69.859933          115.311942        
+kube-apiserver         584.078125         580.982910        
+kube-apiserver-2       499.717773         500.164621        
+
+
+# RPS = 200
+Service                Istio              Mazu              
+details-v1             39.437500          48.800223         
+productpage-v1         50.447266          59.922363         
+ratings-v1             34.254688          46.997210         
+reviews-v1             42.847656          47.343192         
+reviews-v2             37.817522          48.352214         
+reviews-v3             37.467188          49.097168         
+istiod                 53.751116          119.773438        
+kube-apiserver         590.876116         618.987165        
+kube-apiserver-2       515.290179         511.087612        
+
+
+# RPS = 300
+Service                Istio              Mazu              
+details-v1             37.711589          52.055176         
+productpage-v1         48.273996          63.188281         
+ratings-v1             37.448661          48.698661         
+reviews-v1             39.083008          48.775670         
+reviews-v2             36.830729          50.790737         
+reviews-v3             37.516927          51.401855         
+istiod                 61.964286          71.110026         
+kube-apiserver         595.283482         615.743164        
+kube-apiserver-2       516.593192         515.145182        
+
+
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             44.678223          55.744420         
+productpage-v1         60.803571          69.607812         
+ratings-v1             38.868490          50.444336         
+reviews-v1             37.330729          50.774902         
+reviews-v2             35.991629          52.420898         
+reviews-v3             38.456473          53.444754         
+istiod                 66.182943          74.988281         
+kube-apiserver         598.878418         612.474609        
+kube-apiserver-2       522.480469         517.354911        
+
+
+# RPS = 500
+Service                Istio              Mazu              
+details-v1             47.285156          62.491071         
+productpage-v1         61.681920          77.428013         
+ratings-v1             36.840960          52.744978         
+reviews-v1             36.516276          51.802734         
+reviews-v2             36.115234          53.873047         
+reviews-v3             37.628348          54.490723         
+istiod                 67.896205          78.268415         
+kube-apiserver         596.192522         612.945801        
+kube-apiserver-2       523.375651         520.382812        
+
+
+# RPS = 600
+Service                Istio              Mazu              
+details-v1             46.537946          66.497070         
+productpage-v1         60.599330          80.912109         
+ratings-v1             35.453125          52.858398         
+reviews-v1             35.709821          52.627930         
+reviews-v2             36.835379          54.275112         
+reviews-v3             35.868652          54.708594         
+istiod                 56.980957          78.676432         
+kube-apiserver         590.638672         613.308036        
+kube-apiserver-2       508.627232         523.598633        
+
+
+# RPS = 700
+Service                Istio              Mazu              
+details-v1             46.437500          67.164062         
+productpage-v1         61.488770          81.513021         
+ratings-v1             35.336589          53.526042         
+reviews-v1             35.422526          52.976074         
+reviews-v2             37.228516          55.051432         
+reviews-v3             36.883594          55.204799         
+istiod                 48.191406          74.151228         
+kube-apiserver         591.307292         614.361328        
+kube-apiserver-2       511.408854         523.372396        
+
+
+# RPS = 800
+Service                Istio              Mazu              
+details-v1             46.569754          67.211914         
+productpage-v1         62.632812          81.890625         
+ratings-v1             35.405134          53.791992         
+reviews-v1             35.891183          53.252790         
+reviews-v2             37.375558          55.032366         
+reviews-v3             37.392299          55.658854         
+istiod                 48.141183          74.218262         
+kube-apiserver         592.033482         615.068359        
+kube-apiserver-2       510.743490         524.687500        

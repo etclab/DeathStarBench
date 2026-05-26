@@ -1,0 +1,12 @@
+# RPS step boundaries (t = window start) for st5-AttUpd
+# t_sec          rps
+  0              100
+  120            200
+  240            400
+  360            800
+  480           1200
+  600           1600
+  721           2000
+  841           2400
+  961           2800
+  1081          3200

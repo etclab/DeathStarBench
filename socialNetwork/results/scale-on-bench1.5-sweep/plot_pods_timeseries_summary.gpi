@@ -1,0 +1,32 @@
+load "style.gpi"
+
+set terminal pdfcairo enhanced color size 8in,4in
+set output "plot_pods_timeseries_summary.pdf"
+
+set xlabel "Time since sweep start (s)"
+set ylabel "Total active pods (mean of 10 runs)"
+set key bottom right
+
+set grid ytics
+set tics nomirror
+
+set yrange [0:*]
+set xrange [0:1200]
+
+# Filled stddev bands using mean +/- 1 std; lines for the means; vertical
+# dashed lines marking RPS step boundaries (averaged across runs).
+plot \
+    keyentry with lines linestyle 1 linewidth 3 title "Istio", \
+    keyentry with lines linestyle 2 linewidth 3 title "Mazu", \
+    'rps_steps_summary.dat' using 1:(0):(0):(35) notitle \
+        with vectors nohead linecolor rgb "#aaaaaa" dashtype 2 linewidth 1, \
+    'rps_steps_summary.dat' using ($1+60):(34):2 notitle \
+        with labels font ",8" textcolor rgb "#555555" rotate by 0 offset 0,1, \
+    'pods_timeseries_summary_istio.dat' using 1:($2-$3):($2+$3) notitle \
+        with filledcurves fillcolor rgb "#77AADD" fs transparent solid 0.25 noborder, \
+    'pods_timeseries_summary_st5-AttUpd.dat' using 1:($2-$3):($2+$3) notitle \
+        with filledcurves fillcolor rgb "#EE8866" fs transparent solid 0.25 noborder, \
+    'pods_timeseries_summary_istio.dat' using 1:2 notitle \
+        with lines linestyle 1 linewidth 2, \
+    'pods_timeseries_summary_st5-AttUpd.dat' using 1:2 notitle \
+        with lines linestyle 2 linewidth 2

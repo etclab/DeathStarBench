@@ -1,0 +1,12 @@
+# RPS step boundaries (t = window start) for istio
+# t_sec          rps
+  0              100
+  120            200
+  240            400
+  360            800
+  481           1200
+  601           1600
+  721           2000
+  841           2400
+  961           2800
+  1081          3200
