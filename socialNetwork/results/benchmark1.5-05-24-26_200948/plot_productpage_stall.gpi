@@ -1,0 +1,42 @@
+set terminal pdfcairo size 8,5 font "Helvetica,11"
+set output "productpage_stall.pdf"
+
+set multiplot layout 2,1 title "productpage-v1 startup stall (Mazu vs Istio, 400 RPS)" font ",12"
+
+# --- Top: app-container CPU per replica (the smoking gun) ---
+set title "App-container CPU per replica  (Mazu app is idle for first ~30s while wrk2 sends 400 RPS)"
+set ylabel "Cores / replica"
+set xlabel ""
+set xrange [0:120]
+set yrange [0:2.5]
+set grid xtics ytics ls 0 lc rgb "#cccccc"
+set key top right
+set obj 1 rect from 0,0 to 35,2.5 fc rgb "#ffe5e5" fillstyle solid 0.6 noborder behind
+set label 1 "attestation stall" at 17,2.25 center font ",10" textcolor rgb "#d62728"
+
+plot \
+  "sidecar_ts_istio.dat"     index 1 using 1:6 with lines lw 2.5 lc rgb "#1f77b4" title "Istio app/rep", \
+  "sidecar_ts_st5-AttUpd.dat" index 1 using 1:6 with lines lw 2.5 lc rgb "#d62728" title "Mazu app/rep"
+
+# --- Bottom: sidecar CPU per replica + replica count ---
+unset obj 1
+unset label 1
+set title "Sidecar (istio-proxy) CPU per replica  -  HPA threshold = 1.4 cores (70% × proxyCPU=2)"
+set ylabel "Cores / replica"
+set xlabel "t (s) since wrk2 start"
+set yrange [0:1.6]
+set y2tics 0,1
+set y2label "Replicas"
+set y2range [0:10]
+set key top right
+
+set arrow 2 from 0,1.4 to 120,1.4 nohead lw 1.5 lc rgb "#888888" dt 2
+set label 2 "HPA threshold (1.4 c/rep)" at 5,1.45 left font ",9" textcolor rgb "#444444"
+
+plot \
+  "sidecar_ts_istio.dat"     index 1 using 1:5 with lines lw 2.5 lc rgb "#1f77b4" title "Istio proxy/rep", \
+  "sidecar_ts_st5-AttUpd.dat" index 1 using 1:5 with lines lw 2.5 lc rgb "#d62728" title "Mazu proxy/rep", \
+  "sidecar_ts_istio.dat"     index 1 using 1:4 axes x1y2 with steps lw 1.5 lc rgb "#1f77b4" dt 3 title "Istio replicas", \
+  "sidecar_ts_st5-AttUpd.dat" index 1 using 1:4 axes x1y2 with steps lw 1.5 lc rgb "#d62728" dt 3 title "Mazu replicas"
+
+unset multiplot

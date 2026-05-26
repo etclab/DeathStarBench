@@ -1,0 +1,21 @@
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             0.225709           0.214316          
+productpage-v1         0.339714           0.367075          
+productpage-v1-2       0.291922           0.481834          
+productpage-v1-3       0.319474           0.372601          
+productpage-v1-4       0.142129           0.718630          
+productpage-v1-5       0.143592           0.440684          
+productpage-v1-6       0.101943           0.134949          
+productpage-v1-7       0.100607           0.165058          
+ratings-v1             0.187397           0.087739          
+reviews-v1             0.069407           0.112171          
+reviews-v1-2           0.067845           0.154815          
+reviews-v2             0.094810           0.153129          
+reviews-v2-2           0.101847           0.105755          
+reviews-v3             0.096155           0.160268          
+reviews-v3-2           0.094977           0.070959          
+reviews-v3-3           0.072471           0.633420          
+istiod                 0.018877           0.134397          
+kube-apiserver         0.184130           0.000000          
+kube-apiserver-2       0.616297           0.000000          

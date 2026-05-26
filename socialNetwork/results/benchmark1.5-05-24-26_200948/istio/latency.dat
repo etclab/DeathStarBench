@@ -1,0 +1,3 @@
+# End-to-end latency for Istio
+# QPS        p50(ms)      p90(ms)      p99(ms)     
+  400        26.80        10740.00     15930.00    

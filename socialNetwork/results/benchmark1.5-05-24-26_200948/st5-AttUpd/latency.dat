@@ -1,0 +1,3 @@
+# End-to-end latency for Mazu
+# QPS        p50(ms)      p90(ms)      p99(ms)     
+  400        5690.00      18730.00     25560.00    
