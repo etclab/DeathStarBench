@@ -16,7 +16,7 @@ set boxwidth 0.9
 
 set xtics rotate by -30
 
-array RPS_VALS[5] = [20, 40, 60, 80, 100]
+array RPS_VALS[8] = [100, 200, 300, 400, 500, 600, 700, 800]
 
 do for [i=1:|RPS_VALS|] {
     set title sprintf("Memory Usage: Istio vs Mazu (%d QPS)", RPS_VALS[i])

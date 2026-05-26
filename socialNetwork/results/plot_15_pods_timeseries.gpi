@@ -1,0 +1,31 @@
+load "style.gpi"
+
+set terminal pdfcairo enhanced color size 8in,4in
+set output "plot_15_pods_timeseries.pdf"
+
+set xlabel "Time since sweep start (s)"
+set ylabel "Total active pods"
+set key top left
+
+set grid ytics
+set tics nomirror
+
+# Draw RPS step boundaries from istio's rps_steps.dat (mazu boundaries
+# typically align to within a few seconds since DURATION is fixed).
+# Vertical dashed grey lines + labels above the plot.
+stats 'istio/rps_steps.dat' using 1:2 nooutput
+set yrange [0:*]
+ymax = STATS_max_y > 0 ? STATS_max_y : 1
+
+# Use plot-time commands to render boundaries as impulses, with labels.
+plot \
+    keyentry with lines linestyle 1 linewidth 3 title "Istio", \
+    keyentry with lines linestyle 2 linewidth 3 title "Mazu", \
+    'istio/rps_steps.dat'      using 1:(0):(0):(35) notitle \
+        with vectors nohead linecolor rgb "#aaaaaa" dashtype 2 linewidth 1, \
+    'istio/rps_steps.dat'      using 1:(34):2 notitle \
+        with labels font ",8" textcolor rgb "#555555" rotate by 0 offset 0,0.3, \
+    'istio/pods_timeseries.dat'      using 1:2 notitle \
+        with lines linestyle 1 linewidth 2, \
+    'st5-AttUpd/pods_timeseries.dat' using 1:2 notitle \
+        with lines linestyle 2 linewidth 2
