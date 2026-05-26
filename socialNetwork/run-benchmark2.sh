@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Configuration ---
 STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
-RPS=${RPS:-1000}
+RPS=${RPS:-100}
 DURATION=${DURATION:-240}
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark2-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
@@ -102,7 +102,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@c220g1-031111.wisc.cloudlab.us"
+        NODE0="apoudel@pc781.emulab.net"
         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
             echo "First run: setting up trinc/swtpm on all nodes..."

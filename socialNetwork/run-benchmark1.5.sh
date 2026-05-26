@@ -24,7 +24,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Configuration ---
-STRATEGIES=(${STRATEGIES:-"istio" "st5-AttUpd"})
+STRATEGIES=(${STRATEGIES:-"st5-AttUpd" "istio"})
 
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
@@ -37,6 +37,7 @@ if [[ "$SCALE_ENABLED" == "true" ]]; then
     # RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500 600 700 800 900 1000})
     # RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500})
     RPS_VALUES=(${RPS_VALUES:-50 100 200 300 400 500 600 700 800 900 1000 1100 1200})
+    # RPS_VALUES=(${RPS_VALUES:-400})
     DURATION=${DURATION:-120}
 else
     # the below rps_values are used for benchmark when keep alive is off; 
@@ -126,7 +127,7 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             # ---- Create fresh TPMs ----
             echo "Creating TPMs on all nodes..."
-            NODE0="apoudel@c220g1-031111.wisc.cloudlab.us"
+            NODE0="apoudel@pc781.emulab.net"
             SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             # On first run, clone trinc repo and set up TPM libs on all nodes
             if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
@@ -234,6 +235,8 @@ for STRAT in "${STRATEGIES[@]}"; do
             BENCH_START=$(date +%s)
 
             POD_POLL_PID=""
+            CPU_POLL_PID=""
+            REQS_POLL_PID=""
             if [[ "$SCALE_ENABLED" == "true" ]]; then
                 POD_CSV="$RES_DIR/pods-${RPS}.csv"
                 echo "timestamp,app,version,phase,ready" > "$POD_CSV"
@@ -247,6 +250,40 @@ for STRAT in "${STRATEGIES[@]}"; do
                     done
                 ) &
                 POD_POLL_PID=$!
+
+                # Per-second container CPU/memory via metrics-server (kubectl top).
+                # Note: metrics-server refreshes every ~15s by default, so consecutive
+                # 1Hz samples will repeat until the next refresh — timestamps still
+                # pinpoint when values change, which is what we need for HPA-fire timing.
+                CPU_CSV="$RES_DIR/container-cpu-${RPS}.csv"
+                echo "timestamp,pod,container,cpu_millicores,memory_mib" > "$CPU_CSV"
+                (
+                    while true; do
+                        ts=$(date +%s)
+                        kubectl top pod -l 'app in (productpage,details,reviews,ratings)' --containers --no-headers 2>/dev/null \
+                          | awk -v ts="$ts" '{
+                              cpu=$3; sub(/m$/,"",cpu);
+                              mem=$4; sub(/Mi$/,"",mem);
+                              print ts","$1","$2","cpu","mem
+                            }' >> "$CPU_CSV" &
+                        sleep 1
+                    done
+                ) &
+                CPU_POLL_PID=$!
+
+                # Per-second request counters from each sidecar's envoy admin endpoint.
+                # Bypasses Prometheus/istio_requests_total (Mazu's custom istio-proxy
+                # image doesn't emit it). Uses base envoy counters that exist regardless
+                # of the stats filter chain. See dev/scrape-envoy-requests.sh.
+                REQS_CSV="$RES_DIR/requests-${RPS}.csv"
+                echo "timestamp,pod,metric_line" > "$REQS_CSV"
+                (
+                    while true; do
+                        "${SCRIPT_DIR}/dev/scrape-envoy-requests.sh" "$REQS_CSV"
+                        sleep 1
+                    done
+                ) &
+                REQS_POLL_PID=$!
             fi
 
             ${SCRIPT_DIR}/../wrk2/wrk -D exp -t 16 -c 128 -d ${DURATION} -L \
@@ -255,10 +292,12 @@ for STRAT in "${STRATEGIES[@]}"; do
 
             BENCH_END=$(date +%s)
 
-            if [[ -n "$POD_POLL_PID" ]]; then
-                kill "$POD_POLL_PID" 2>/dev/null || true
-                wait "$POD_POLL_PID" 2>/dev/null || true
-            fi
+            for PID in "$POD_POLL_PID" "$CPU_POLL_PID" "$REQS_POLL_PID"; do
+                if [[ -n "$PID" ]]; then
+                    kill "$PID" 2>/dev/null || true
+                    wait "$PID" 2>/dev/null || true
+                fi
+            done
 
             echo "wrk2 results saved to ${OUT_FILE}"
 

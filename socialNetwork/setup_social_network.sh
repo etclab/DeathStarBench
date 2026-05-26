@@ -249,7 +249,7 @@ if [[ "$run_mixed_load" == "true" ]]; then
 
     # freshly create TPMs on all nodes for the new run
     mazu_echo "Creating TPMs on all nodes..."
-    NODE0="apoudel@pc849.emulab.net"
+    NODE0="apoudel@pc781.emulab.net"
     ssh "$NODE0" 'for node in node-0 node-1 node-2 node-3; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
     mazu_echo "TPMs created on all nodes"
 
