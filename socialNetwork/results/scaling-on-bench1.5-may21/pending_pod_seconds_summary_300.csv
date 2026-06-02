@@ -1,0 +1,13 @@
+strategy,service,rps,n_runs,mean_pending_pod_seconds,stddev_pending_pod_seconds,n_runs_scaled,mean_pending_time_per_pod,stddev_pending_time_per_pod
+st5-AttUpd,productpage-v1,300,10,18.0000,1.9437,10,4.5000,0.4859
+st5-AttUpd,details-v1,300,10,0.0000,0.0000,0,0.0000,0.0000
+st5-AttUpd,ratings-v1,300,10,0.0000,0.0000,0,0.0000,0.0000
+st5-AttUpd,reviews-v1,300,10,2.8000,2.4404,6,4.6667,0.5164
+st5-AttUpd,reviews-v2,300,10,8.0000,3.1972,10,4.7167,0.7619
+st5-AttUpd,reviews-v3,300,10,8.5000,3.5040,10,5.1500,0.5355
+istio,productpage-v1,300,10,14.0000,1.6997,10,3.4250,0.4417
+istio,details-v1,300,10,0.0000,0.0000,0,0.0000,0.0000
+istio,ratings-v1,300,10,0.0000,0.0000,0,0.0000,0.0000
+istio,reviews-v1,300,10,3.1000,1.1972,9,3.4444,0.5270
+istio,reviews-v2,300,10,7.5000,2.9155,10,3.3667,0.3583
+istio,reviews-v3,300,10,5.7000,2.8694,10,3.1167,0.4161

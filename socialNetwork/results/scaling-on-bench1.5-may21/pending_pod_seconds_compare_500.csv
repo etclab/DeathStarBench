@@ -1,0 +1,8 @@
+service,rps,istio_mean_pending_pod_seconds,mazu_mean_pending_pod_seconds,pps_delta_istio_minus_mazu,pps_ratio_istio_over_mazu,istio_mean_pending_time_per_pod,mazu_mean_pending_time_per_pod,perpod_delta_istio_minus_mazu,perpod_ratio_istio_over_mazu
+productpage-v1,500,23.7000,35.1000,-11.4000,0.6752,3.2649,4.6851,-1.4202,0.6969
+details-v1,500,3.3000,4.9000,-1.6000,0.6735,3.3000,4.9000,-1.6000,0.6735
+ratings-v1,500,0.0000,0.0000,0.0000,inf,0.0000,0.0000,0.0000,inf
+reviews-v1,500,2.2000,1.0000,1.2000,2.2000,3.1429,5.0000,-1.8571,0.6286
+reviews-v2,500,6.9000,10.7000,-3.8000,0.6449,3.1333,4.5333,-1.4000,0.6912
+reviews-v3,500,6.3000,12.6000,-6.3000,0.5000,3.1333,4.7500,-1.6167,0.6596
+TOTAL,500,42.4000,64.3000,-21.9000,0.6594,,,,
