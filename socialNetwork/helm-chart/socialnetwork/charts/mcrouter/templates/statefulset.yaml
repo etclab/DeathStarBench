@@ -24,6 +24,19 @@ spec:
         chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
         release: "{{ .Release.Name }}"
         heritage: "{{ .Release.Service }}"
+      {{- /*
+        Added locally: this upstream chart (evryfs/mcrouter 0.3.0) has no
+        podAnnotations support, which makes its pods unusable under the Mazu
+        strategy arms -- the sidecar needs the RBE params mounted via
+        sidecar.istio.io/userVolume annotations or it never becomes Ready.
+        See templates/_baseDeployment.tpl for the full explanation.
+      */}}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- range $k, $v := . }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      {{- end }}
     spec:
       nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
       tolerations: {{ toYaml .Values.tolerations | nindent 8 }}

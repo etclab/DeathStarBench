@@ -1,0 +1,119 @@
+# Arm R: Redis Cluster topology (multi-master, hash-slot sharded).
+#
+# Layer on top of socialnetwork-bench-values.yaml and sn-images-legacy.yaml:
+#   -f socialnetwork-bench-values.yaml -f sn-images-legacy.yaml -f sn-redis-cluster.yaml
+#
+# ###########################################################################
+# # READ THIS BEFORE TRUSTING ANY NUMBER FROM THIS ARM                      #
+# ###########################################################################
+#
+# KEYSPACE SAFETY: **NOT SAFE**. This topology silently merges the home
+# timeline and the user timeline.
+#
+# service-config.tpl points all four redis clients at one shared
+# `<release>-redis-cluster:6379`. That is only correct if the services use
+# disjoint key spaces. They do not:
+#
+#   src/HomeTimelineService/HomeTimelineHandler.h:150
+#       pipe.zadd(std::to_string(follower_id), post_id_str, timestamp, ...)
+#   src/HomeTimelineService/HomeTimelineHandler.h:237
+#       _redis_client_pool->zrevrange(std::to_string(user_id), ...)
+#
+#   src/UserTimelineService/UserTimelineHandler.h:168
+#       _redis_client_pool->zadd(std::to_string(user_id), std::to_string(post_id), ...)
+#   src/UserTimelineService/UserTimelineHandler.h:209
+#       _redis_client_pool->zrevrange(std::to_string(user_id), start, stop - 1, ...)
+#
+# Both use a BARE user id as the sorted-set key, with no service prefix. In
+# the standalone topology that is harmless -- they are separate Redis
+# instances. Collapsed onto one cluster, key "123" is simultaneously user
+# 123's home timeline (posts by people they follow) and user 123's own
+# posts. The two sets union together.
+#
+# The failure is silent: both endpoints keep returning HTTP 200 with
+# well-formed JSON, just with the wrong contents -- and the merged sets are
+# larger than either should be, so read latency is distorted too.
+#
+# For contrast, the OTHER two redis clients are safely namespaced:
+#   SocialGraphService -> "<id>:followers" / "<id>:followees"
+# so social-graph is fine; only home-timeline vs user-timeline collide.
+#
+# This is a defect in the chart's cluster topology, not in our config, and
+# it cannot be fixed from values alone -- the key prefixes are compiled into
+# the service binaries. Treat this arm as an infrastructure scaling
+# measurement with known-corrupt application semantics, and say so in any
+# writeup. run-socialnetwork-scale.sh runs an explicit collision check
+# (--check-collision) that reports the overlap rather than letting it pass.
+#
+# SCALING KNOBS (override with --set from the runner):
+#   redis-cluster.cluster.nodes    -- TOTAL pods, masters + replicas
+#   redis-cluster.cluster.replicas -- replicas per master
+# nodes = masters + masters*replicas, and masters must be >= 3.
+#   nodes=6,  replicas=1 ->  3 masters
+#   nodes=12, replicas=1 ->  6 masters
+#   nodes=18, replicas=1 ->  9 masters
+
+global:
+  redis:
+    standalone:
+      enabled: false
+    cluster:
+      enabled: true
+    replication:
+      enabled: false
+      primary: redis-master
+      replica: redis-replicas
+
+redis-cluster:
+  usePassword: false
+  # The post-install hook in templates/hooks/redis-cluster/ polls the
+  # cluster until every node reports "cluster state: ok", so the chart's own
+  # probes are redundant and were causing spurious restarts during cluster
+  # formation.
+  redis:
+    readinessProbe:
+      enabled: false
+    livenessProbe:
+      enabled: false
+    # Keep Redis in memory. See the persistence note at the bottom of this
+    # file -- the PVC cannot be avoided, so instead we stop Redis from
+    # writing to it. useAOFPersistence defaults to "yes", which would fsync
+    # every single write to an NFS volume and turn this arm into a
+    # measurement of the storage layer rather than of Redis.
+    useAOFPersistence: "no"
+    # ...and disable RDB snapshots too, so nothing touches the volume.
+    configmap: |
+      save ""
+    resources:
+      requests:
+        cpu: "1"
+        memory: 2Gi
+      limits:
+        cpu: "4"
+        memory: 8Gi
+
+  cluster:
+    init: true
+    nodes: 6
+    replicas: 1
+
+# PERSISTENCE: UNAVOIDABLE, AND NOT WHAT YOU EXPECT.
+#
+# Unlike the mongodb-sharded and memcached charts, redis-cluster 8.1.4 has
+# NO `persistence.enabled` key -- the `volumeClaimTemplates` block in
+# redis-statefulset.yaml is unconditional. Setting `persistence.enabled:
+# false` here does nothing at all; Helm silently accepts the unknown key and
+# every node still gets an 8Gi PVC on the NFS StorageClass.
+#
+# Since the volume cannot be removed, the write path is neutralised instead:
+# `redis.useAOFPersistence: "no"` plus `save ""` above mean Redis never
+# writes to it. The PVCs are provisioned and then sit empty, which keeps
+# this arm comparable to the others (all of which keep data in memory / the
+# container filesystem).
+#
+# The PVCs are NOT reclaimed by `helm uninstall`. run-socialnetwork-scale.sh
+# deletes them during teardown; if you install by hand, clean up with:
+#   for p in $(kubectl get pvc -o name -l app.kubernetes.io/name=redis-cluster); do kubectl delete $p; done
+#
+# Deliberately no `persistence:` block below -- there is no key here that
+# would do anything.

@@ -1,0 +1,56 @@
+# Mazu sidecar annotations -- NON-TPM strategies (e.g. "istio", "st4-AudUpd").
+#
+# WHY THIS IS REQUIRED
+# --------------------
+# A Mazu sidecar will not report Ready until it has registered with the Key
+# Curator, and it cannot register unless the RBE public parameters are mounted
+# into the proxy. Without this file every application pod sits forever at:
+#
+#   Envoy proxy is NOT ready: RBE registration not yet confirmed by Key Curator
+#
+# and `kubectl get pods` shows 1/2 Running with no errors anywhere -- the app
+# container is healthy, only the sidecar is blocked.
+#
+# The Bookinfo manifests carry these annotations inline on every deployment
+# (scratch/yaml/bookinfo-const.yaml lines 72-73 and equivalents). The DSB chart
+# had nowhere to put them until templates/_baseDeployment.tpl and
+# _baseNginxDeployment.tpl gained a podAnnotations block.
+#
+# Observed failure without it: the 10 ingress-gateway pods registered fine
+# (they get the volumes from scratch/yaml/istio-operator*.yaml) while all 56
+# application sidecars connected to StreamRegistrations and were never
+# registered -- istiod logged exactly 10 RegisterUser calls against a
+# maxUsers of 65536, so it is not a capacity limit.
+#
+# Use sn-mazu-annotations-tpm.yaml instead for TPM strategies (st5-AttUpd),
+# which additionally need the TPM pubkeys.
+
+global:
+  podAnnotations:
+    sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+    sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+
+# The Bitnami/evryfs subcharts do not read global.podAnnotations, so each one
+# needs the same annotations passed through its own key. mongodb-sharded
+# applies `common.podAnnotations` to configsvr, mongos and shardsvr alike.
+mongodb-sharded:
+  common:
+    podAnnotations:
+      sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+      sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+
+mcrouter:
+  # podAnnotations support was added locally to charts/mcrouter/templates/statefulset.yaml;
+  # the upstream 0.3.0 chart has none.
+  podAnnotations:
+    sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+    sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+  memcached:
+    podAnnotations:
+      sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+      sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'
+
+redis-cluster:
+  podAnnotations:
+    sidecar.istio.io/userVolume: '[{"name":"mazu-config","configMap":{"name":"mazu-config"}},{"name":"rbe-pp-volume","configMap":{"name":"rbe-pp"}}]'
+    sidecar.istio.io/userVolumeMount: '[{"name":"mazu-config","mountPath":"/etc/mazu-config","readOnly":true},{"name":"rbe-pp-volume","mountPath":"/var/run/rbe-pp","readOnly":true}]'

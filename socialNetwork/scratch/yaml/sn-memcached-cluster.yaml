@@ -1,0 +1,83 @@
+# Arm M: memcached cluster topology (mcrouter + memcached StatefulSet).
+#
+# Layer on top of socialnetwork-bench-values.yaml and sn-images-legacy.yaml:
+#   -f socialnetwork-bench-values.yaml -f sn-images-legacy.yaml -f sn-memcached-cluster.yaml
+#
+# WHAT CHANGES IN THE APPLICATION
+# -------------------------------
+# service-config.tpl swings all four memcached clients
+# (post-storage, user, url-shorten, media) from their own dedicated
+# single-instance memcached to one shared `<release>-mcrouter:5000`, and
+# flips `binary_protocol` from 1 to 0 -- mcrouter cannot speak the binary
+# protocol (facebook/mcrouter#6), so ASCII is forced.
+#
+# KEYSPACE SAFETY: verified OK.
+#   Collapsing four caches into one shared pool is only safe if their key
+#   spaces do not overlap. Checked against src/:
+#     PostStorageService  -> bare post_id          (int64, ~18 digits)
+#     UserService         -> "<username>:user_id", "<username>:login"
+#     UrlShortenService   -> shortened-url strings
+#     MediaService        -> media name strings
+#   No overlap. Contrast with redis (see sn-redis-cluster.yaml), where the
+#   equivalent collapse DOES collide.
+#
+# SCALING KNOBS (override with --set from the runner):
+#   mcrouter.statefulset.replicas  -- number of mcrouter router pods
+#   mcrouter.memcached.replicaCount -- number of memcached backends
+#
+# NOTE ON mcrouter.statefulset.replicas:
+#   The chart default is 1. That single pod proxies every cache operation
+#   for the entire application, which makes it a prime suspect for the
+#   ~950 RPS plateau. Default raised to 3 here; scale it as its own axis.
+#
+# NOTE ON WHAT "SCALING MEMCACHED" ACTUALLY MEANS HERE:
+#   The stock route config in templates/hooks/mcrouter/configmap.yaml sets
+#   operation_policies for add/delete/get/set to AllFastestRoute (write to
+#   every backend, read the latest). That is REPLICATION, not sharding --
+#   adding backends buys read throughput and redundancy, NOT cache capacity,
+#   since every pod holds a full copy. The `default_policy: PoolRoute|A`
+#   would shard, but every operation the application issues is covered by
+#   an operation_policy override, so it never applies.
+#
+#   To measure sharding instead, drop the operation_policies block from
+#   config_template.json in templates/hooks/mcrouter/configmap.yaml so that
+#   default_policy: PoolRoute|A takes effect. That edits the vendored chart,
+#   so it is deliberately NOT done here -- keep it a separate, labelled
+#   experiment rather than a silent difference between runs.
+
+global:
+  memcached:
+    cluster:
+      enabled: true
+      port: 5000
+    standalone:
+      enabled: false
+
+mcrouter:
+  controller: statefulset
+  statefulset:
+    replicas: 3
+    # "hard" anti-affinity requires one node per replica; we have 18.
+    antiAffinity: hard
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+  memcached:
+    architecture: high-availability
+    replicaCount: 3
+    # No PVC: memcached is a cache, and NFS-backed storage would make this
+    # arm incomparable to the standalone baseline (which used the container
+    # filesystem). Keep the storage path identical across arms.
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 4Gi

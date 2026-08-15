@@ -1,0 +1,72 @@
+# Image pins for the sharded/clustered datastore topologies.
+#
+# WHY THIS FILE IS MANDATORY
+# --------------------------
+# Every Bitnami image tag referenced by the vendored subcharts
+# (mongodb-sharded 9.0.0, redis-cluster 8.1.4, redis 17.3.7, and the
+# memcached 5.15.8 subchart under mcrouter) has been DELETED from
+# docker.io/bitnami. Bitnami moved its back catalogue to the
+# `bitnamilegacy` organisation in 2025 and now publishes only current
+# tags under `bitnami`.
+#
+# Verified against the Docker Hub registry API on 2026-08-14:
+#
+#   404  bitnami/mongodb-sharded:8.0.0-debian-12-r1
+#   404  bitnami/redis-cluster:7.0.4-debian-11-r4
+#   404  bitnami/redis:7.0.5-debian-11-r7
+#   404  bitnami/memcached:1.6.12-debian-10-r23
+#   200  bitnamilegacy/mongodb-sharded:8.0.0-debian-12-r1
+#   200  bitnamilegacy/redis-cluster:7.0.4-debian-11-r4
+#   200  bitnamilegacy/os-shell:12-debian-12-r31
+#
+# Without these pins every cluster/sharded topology dies in
+# ImagePullBackOff. The standalone topology is unaffected because it uses
+# the plain upstream `redis`, `memcached` and `mongo` images, not Bitnami's.
+#
+# Two special cases:
+#
+#   * bitnami/bitnami-shell no longer exists in ANY org (not even
+#     bitnamilegacy -- the repository itself is gone). It is only
+#     referenced by redis-cluster's `volumePermissions` and `sysctlImage`,
+#     both of which default to enabled:false, so it is never pulled. Do
+#     not enable either without first finding a replacement image.
+#
+#   * bitnamilegacy/memcached has no 1.6.12-debian-10-r23 tag -- the
+#     legacy org only carries the newer tags. Pinned to 1.6.39-debian-12-r1
+#     instead, which is the oldest tag still published. This is an image
+#     version bump (1.6.12 -> 1.6.39), not just a registry move.
+
+mongodb-sharded:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/mongodb-sharded
+    tag: 8.0.0-debian-12-r1
+  volumePermissions:
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/os-shell
+      tag: 12-debian-12-r31
+  metrics:
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/mongodb-exporter
+      tag: 0.41.1-debian-12-r1
+
+redis-cluster:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis-cluster
+    tag: 7.0.4-debian-11-r4
+
+redis:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 7.0.5-debian-11-r7
+
+mcrouter:
+  memcached:
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/memcached
+      tag: 1.6.39-debian-12-r1

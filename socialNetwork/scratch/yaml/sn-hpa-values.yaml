@@ -1,0 +1,60 @@
+# Replica floor for the HPA / replica-churn experiment.
+#
+# Layer this AFTER socialnetwork-bench-values.yaml:
+#
+#   helm ... -f socialnetwork-bench-values.yaml -f sn-hpa-values.yaml
+#
+# WHY THIS FILE EXISTS
+#   socialnetwork-bench-values.yaml pins replica counts (nginx-thrift 8, the
+#   core services 4, the leaf services 2) to reach ~900 RPS with a FIXED
+#   fleet. That is the right shape for a steady-state latency comparison and
+#   the wrong shape for measuring scale-up: a fleet that starts at its
+#   working size barely churns.
+#
+#   This overlay returns every autoscaled deployment to 1 so the HPAs in
+#   sn-hpa.yaml have somewhere to grow from. The values MUST equal the
+#   minReplicas in that file -- if the chart asks for 8 and the HPA floor is
+#   1, the first HPA sync rewrites the fleet and the opening samples of
+#   pods.csv describe a scale-DOWN that has nothing to do with load.
+#
+#   Everything else -- global.resources, the datastore topology -- is
+#   inherited from the file this is layered on top of. In particular the
+#   1 CPU request per app container is what the HPA's Utilization target is
+#   computed against, so do not drop it.
+#
+# NOT LISTED HERE: the datastores. They have no HPA and must stay at 1; see
+# the warning in socialnetwork-bench-values.yaml about spraying reads and
+# writes across non-replicating instances.
+
+global:
+  replicas: 1
+
+# --- nginx / lua frontends -------------------------------------------------
+nginx-thrift:
+  replicas: 1
+media-frontend:
+  replicas: 1
+
+# --- stateless thrift services --------------------------------------------
+compose-post-service:
+  replicas: 1
+home-timeline-service:
+  replicas: 1
+user-timeline-service:
+  replicas: 1
+post-storage-service:
+  replicas: 1
+social-graph-service:
+  replicas: 1
+user-service:
+  replicas: 1
+user-mention-service:
+  replicas: 1
+text-service:
+  replicas: 1
+url-shorten-service:
+  replicas: 1
+unique-id-service:
+  replicas: 1
+media-service:
+  replicas: 1

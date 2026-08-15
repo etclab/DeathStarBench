@@ -1,0 +1,63 @@
+# Benchmark overrides for helm-chart/socialnetwork.
+#
+# Why this file exists:
+#   The stock chart ships global.resources.limits.cpu=1000m with
+#   global.replicas=1. On this cluster (18 x 32 vCPU) that caps the whole
+#   application at roughly 200 RPS: under load nginx-thrift pins at exactly
+#   1001m against its 1000m limit and gets CFS-throttled, which shows up as
+#   ~20 s p50 latency with zero non-2xx responses. The app is not broken --
+#   it is just resource-starved by the defaults.
+#
+# Usage:
+#   helm upgrade --install social-network helm-chart/socialnetwork/ \
+#       -f scratch/yaml/socialnetwork-bench-values.yaml
+#
+# NOTE on replicas: only the stateless Thrift services and the nginx
+# frontends are scaled here. The mongodb / redis / memcached charts in the
+# "standalone" topology are single-instance datastores sitting behind one
+# ClusterIP -- raising their replica count would spray reads and writes
+# across independent, non-replicating instances and silently corrupt
+# results. To scale those, use the chart's sharded/cluster topologies
+# (global.mongodb.sharding.enabled, global.redis.cluster.enabled,
+# global.memcached.cluster.enabled) instead.
+
+global:
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "8"
+      memory: 8Gi
+
+# --- nginx / lua frontends -------------------------------------------------
+# nginx-thrift is the single hottest pod: it terminates every client request
+# and fans out to the Thrift services, so it saturates first.
+nginx-thrift:
+  replicas: 8
+media-frontend:
+  replicas: 2
+
+# --- stateless thrift services --------------------------------------------
+compose-post-service:
+  replicas: 4
+home-timeline-service:
+  replicas: 4
+user-timeline-service:
+  replicas: 4
+post-storage-service:
+  replicas: 4
+social-graph-service:
+  replicas: 4
+user-service:
+  replicas: 2
+user-mention-service:
+  replicas: 2
+text-service:
+  replicas: 2
+url-shorten-service:
+  replicas: 2
+unique-id-service:
+  replicas: 2
+media-service:
+  replicas: 2

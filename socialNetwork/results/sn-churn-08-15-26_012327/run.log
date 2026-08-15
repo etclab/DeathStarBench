@@ -1,0 +1,685 @@
+[1;30;44mMazu:[0m === SocialNetwork: strategy comparison ===.
+Strategies: st5-AttUpd istio
+Substrate:  baseline
+Workload:   mixed-workload.lua @ 100 200 400 800 RPS x 240s (-t 16 -c 128)
+Gateway:    10 replicas per arm
+Results:    /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327
+[1;30;44mMazu:[0m ############ STRATEGY: st5-AttUpd (substrate: baseline) ############.
+=== started at Sat Aug 15 01:23:27 AM UTC 2026 ===
+[1;30;44mMazu:[0m Tearing down social-network....
+horizontalpodautoscaler.autoscaling "nginx-thrift-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "compose-post-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "home-timeline-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "user-timeline-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "post-storage-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "social-graph-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "user-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "user-mention-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "text-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "url-shorten-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "unique-id-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "media-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "media-frontend-hpa" deleted from default namespace
+release "social-network" uninstalled
+gateway.networking.istio.io "social-network-gateway" deleted from default namespace
+virtualservice.networking.istio.io "social-network" deleted from default namespace
+No resources found
+No resources found
+No resources found
+[1;30;44mMazu:[0m Removing Istio....
+Strategy: st5-AttUpd | Tag: st5-AttUpd | Duration: 240 seconds | RPS: 1000
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_012405/st5-AttUpd-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_012405/st5-AttUpd-240/1000.txt
+/users/apoudel/DeathStarBench/socialNetwork
+All Istio resources will be pruned from the cluster
+
+  Removed apps/v1, Kind=Deployment/istio-ingressgateway.istio-system.
+  Removed apps/v1, Kind=Deployment/istiod.istio-system.
+  Removed /v1, Kind=Service/istio-ingressgateway.istio-system.
+  Removed /v1, Kind=Service/istiod.istio-system.
+  Removed /v1, Kind=ConfigMap/istio.istio-system.
+  Removed /v1, Kind=ConfigMap/istio-sidecar-injector.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-65t87.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-7zvvl.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-925wv.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-c5j7b.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-cgfkb.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-ftccn.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-l8m4x.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-pg9v9.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-pm7vs.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-rqrv2.istio-system.
+  Removed /v1, Kind=Pod/istiod-fb9866b9d-r88pr.istio-system.
+  Removed /v1, Kind=ServiceAccount/istio-ingressgateway-service-account.istio-system.
+  Removed /v1, Kind=ServiceAccount/istio-reader-service-account.istio-system.
+  Removed /v1, Kind=ServiceAccount/istiod.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=RoleBinding/istio-ingressgateway-sds.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=RoleBinding/istiod.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=Role/istio-ingressgateway-sds.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=Role/istiod.istio-system.
+  Removed policy/v1, Kind=PodDisruptionBudget/istio-ingressgateway.istio-system.
+  Removed policy/v1, Kind=PodDisruptionBudget/istiod.istio-system.
+  Removed autoscaling/v2, Kind=HorizontalPodAutoscaler/istio-ingressgateway.istio-system.
+  Removed autoscaling/v2, Kind=HorizontalPodAutoscaler/istiod.istio-system.
+  Removed admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration/istio-revision-tag-default..
+  Removed admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration/istio-sidecar-injector..
+  Removed admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration/istio-validator-istio-system..
+  Removed admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration/istiod-default-validator..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRole/istio-reader-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRole/istiod-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRole/istiod-gateway-controller-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding/istio-reader-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding/istiod-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding/istiod-gateway-controller-istio-system..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/authorizationpolicies.security.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/destinationrules.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/envoyfilters.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/gateways.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/peerauthentications.security.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/proxyconfigs.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/requestauthentications.security.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/serviceentries.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/sidecars.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/telemetries.telemetry.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/virtualservices.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/wasmplugins.extensions.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/workloadentries.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/workloadgroups.networking.istio.io..
+
+✔ Uninstall completelease.coordination.k8s.io "istiod-key-curator-leader" deleted from istio-system namespace
+pod/istiod-fb9866b9d-r88pr condition met
+pod/istio-ingressgateway-745cc59f79-65t87 condition met
+pod/istio-ingressgateway-745cc59f79-7zvvl condition met
+pod/istio-ingressgateway-745cc59f79-925wv condition met
+pod/istio-ingressgateway-745cc59f79-c5j7b condition met
+pod/istio-ingressgateway-745cc59f79-cgfkb condition met
+pod/istio-ingressgateway-745cc59f79-ftccn condition met
+pod/istio-ingressgateway-745cc59f79-l8m4x condition met
+pod/istio-ingressgateway-745cc59f79-pg9v9 condition met
+pod/istio-ingressgateway-745cc59f79-pm7vs condition met
+pod/istio-ingressgateway-745cc59f79-rqrv2 condition met
+pod "kube-apiserver-node-0" deleted from kube-system namespace
+pod "kube-apiserver-node-1" deleted from kube-system namespace
+Waiting for 2 kube-apiserver pods to become Ready...
+All kube-apiserver pods are Ready
+[1;30;44mMazu:[0m Recreating swtpm on [node-0 node-1] via 155.98.36.141....
+Warning: Permanently added '155.98.36.141' (ED25519) to the list of known hosts.
+Warning: Permanently added '155.98.36.141' (ED25519) to the list of known hosts.
+--> Creating tpm state folder in /tpm/myvtpm2.
+--> Creating tpm state folder in /tpm/myvtpm2.
+--> Creating tpm with swtpm_setup.
+--> Creating tpm with swtpm_setup.
+Starting vTPM manufacturing as root:root @ Fri 14 Aug 2026 07:24:19 PM MDT
+Apply profile: {"Name": "default-v1"}
+TPM is listening on Unix socket.
+Starting vTPM manufacturing as root:root @ Fri 14 Aug 2026 07:24:19 PM MDT
+Apply profile: {"Name": "default-v1"}
+Active profile: {"Name":"default-v1","StateFormatLevel":7,"Commands":"0x11f-0x122,0x124-0x12e,0x130-0x140,0x142-0x159,0x15b-0x15e,0x160-0x165,0x167-0x174,0x176-0x178,0x17a-0x193,0x197,0x199-0x19c","Algorithms":"rsa,rsa-min-size=1024,tdes,tdes-min-size=128,sha1,hmac,aes,aes-min-size=128,mgf1,keyedhash,xor,sha256,sha384,sha512,null,rsassa,rsaes,rsapss,oaep,ecdsa,ecdh,ecdaa,sm2,ecschnorr,ecmqv,kdf1-sp800-56a,kdf2,kdf1-sp800-108,ecc,ecc-min-size=192,ecc-nist,ecc-bn,ecc-sm2-p256,symcipher,camellia,camellia-min-size=128,cmac,ctr,ofb,cbc,cfb,ecb","Description":"This profile enables all libtpms v0.10-supported commands and algorithms. This profile is compatible with libtpms >= v0.10."}
+TPM is listening on Unix socket.
+Active profile: {"Name":"default-v1","StateFormatLevel":7,"Commands":"0x11f-0x122,0x124-0x12e,0x130-0x140,0x142-0x159,0x15b-0x15e,0x160-0x165,0x167-0x174,0x176-0x178,0x17a-0x193,0x197,0x199-0x19c","Algorithms":"rsa,rsa-min-size=1024,tdes,tdes-min-size=128,sha1,hmac,aes,aes-min-size=128,mgf1,keyedhash,xor,sha256,sha384,sha512,null,rsassa,rsaes,rsapss,oaep,ecdsa,ecdh,ecdaa,sm2,ecschnorr,ecmqv,kdf1-sp800-56a,kdf2,kdf1-sp800-108,ecc,ecc-min-size=192,ecc-nist,ecc-bn,ecc-sm2-p256,symcipher,camellia,camellia-min-size=128,cmac,ctr,ofb,cbc,cfb,ecb","Description":"This profile enables all libtpms v0.10-supported commands and algorithms. This profile is compatible with libtpms >= v0.10."}
+Successfully created RSA 2048 EK with handle 0x81010001.
+  Invoking /usr/bin/swtpm_localca --type ek --ek daa858a22aee30c263b7bfee43a3f09623ddfaf6ba0ec6a4c41a9d3be273c7aced8acf7cecd4b54fe9d9b003a1bfe0a0019d9cfbe188a52a3bbf28bcd1aa48d1eea6b084a64fff1954b8d884a763a79af5be9f7afd85e3afc4ce96aa01ed78bdc3386837d13d032d615b89ca44cd1518b01c9459f69c120c550e724525a9570f2f5c9f9b37bdf328f695711d1294ea63ea258fc2b7dae294fb01b48c178690fc43b1bc0d1c47163fa06d7c7931575f093dfb267a011e0f9f23a1b49692a7d4fd10383f6220e78add96a3dc084f5c59947e5d20895b1d62aeb8afb2e3f50bd72bb47cc8e871645d0eac96df89e9c99331801800f1bce76383227eb636e636ee99 --dir /tmp/swtpm_setup.certs.WRZUT3 --tpm-spec-family 2.0 --tpm-spec-level 0 --tpm-spec-revision 183 --tpm-manufacturer id:00001014 --tpm-model swtpm --tpm-version id:20240125 --tpm2 --configfile /etc/swtpm-localca.conf --optsfile /etc/swtpm-localca.options
+swtpm_localca: Successfully created EK certificate locally.
+  Invoking /usr/bin/swtpm_localca --type platform --ek daa858a22aee30c263b7bfee43a3f09623ddfaf6ba0ec6a4c41a9d3be273c7aced8acf7cecd4b54fe9d9b003a1bfe0a0019d9cfbe188a52a3bbf28bcd1aa48d1eea6b084a64fff1954b8d884a763a79af5be9f7afd85e3afc4ce96aa01ed78bdc3386837d13d032d615b89ca44cd1518b01c9459f69c120c550e724525a9570f2f5c9f9b37bdf328f695711d1294ea63ea258fc2b7dae294fb01b48c178690fc43b1bc0d1c47163fa06d7c7931575f093dfb267a011e0f9f23a1b49692a7d4fd10383f6220e78add96a3dc084f5c59947e5d20895b1d62aeb8afb2e3f50bd72bb47cc8e871645d0eac96df89e9c99331801800f1bce76383227eb636e636ee99 --dir /tmp/swtpm_setup.certs.WRZUT3 --tpm-spec-family 2.0 --tpm-spec-level 0 --tpm-spec-revision 183 --tpm-manufacturer id:00001014 --tpm-model swtpm --tpm-version id:20240125 --tpm2 --configfile /etc/swtpm-localca.conf --optsfile /etc/swtpm-localca.options
+swtpm_localca: Successfully created platform certificate locally.
+Successfully created NVRAM area 0x1c00002 for RSA 2048 EK certificate.
+Successfully created NVRAM area 0x1c08000 for platform certificate.
+Successfully created ECC EK with handle 0x81010016.
+  Invoking /usr/bin/swtpm_localca --type ek --ek x=dcadb75d5a32c22c4e596638c38e69e3013d9f1e3f18504b0e47a8d909d2e582a43af2f10eb925407407138dbdc849aa,y=5370e96129ca49a2fa5079df3f1604a1bd25241deb1d866a91037302df72b08210a0363a8a567db1915c046254beae23,id=secp384r1 --dir /tmp/swtpm_setup.certs.WRZUT3 --tpm-spec-family 2.0 --tpm-spec-level 0 --tpm-spec-revision 183 --tpm-manufacturer id:00001014 --tpm-model swtpm --tpm-version id:20240125 --tpm2 --configfile /etc/swtpm-localca.conf --optsfile /etc/swtpm-localca.options
+swtpm_localca: Successfully created EK certificate locally.
+Successfully created NVRAM area 0x1c00016 for ECC EK certificate.
+Successfully activated PCR banks sha256 among sha1,sha256,sha384,sha512.
+Successfully authored TPM state.
+Ending vTPM manufacturing @ Fri 14 Aug 2026 07:24:19 PM MDT
+Successfully created RSA 2048 EK with handle 0x81010001.
+  Invoking /usr/bin/swtpm_localca --type ek --ek bee66e189729c5a256e420c431a154c9dba605ffb9edfd2c2261c05295f336fb3141ad57d6818091484705b1416f6ca3637e16a091719b0dce1b3eb6eef720b1aa7c56b839d1491b2ea1adf40728cd12cb265310c457c19d1dac9ad7b9ca7ac25508c9d1a95dc1b854de6210871d16631178f73bb397de075b4c64d744103b5c666be495958729dd0b07ce4c3eed28c5f23e4235a42dfac99b777041ac4d205479522e17aee86ba167d292684bc0c90d5f7ceaea4f0ed953713b421fbb3d75238a5ab3b083487dcff5bdd1ff5a04e09338718d3f47f13819b49012e4faf983f0f98dc54fbfeeef4108c7e068960a94781603579da921a935a862da976dfcf659 --dir /tmp/swtpm_setup.certs.BR0TT3 --tpm-spec-family 2.0 --tpm-spec-level 0 --tpm-spec-revision 183 --tpm-manufacturer id:00001014 --tpm-model swtpm --tpm-version id:20240125 --tpm2 --configfile /etc/swtpm-localca.conf --optsfile /etc/swtpm-localca.options
+swtpm_localca: Successfully created EK certificate locally.
+  Invoking /usr/bin/swtpm_localca --type platform --ek bee66e189729c5a256e420c431a154c9dba605ffb9edfd2c2261c05295f336fb3141ad57d6818091484705b1416f6ca3637e16a091719b0dce1b3eb6eef720b1aa7c56b839d1491b2ea1adf40728cd12cb265310c457c19d1dac9ad7b9ca7ac25508c9d1a95dc1b854de6210871d16631178f73bb397de075b4c64d744103b5c666be495958729dd0b07ce4c3eed28c5f23e4235a42dfac99b777041ac4d205479522e17aee86ba167d292684bc0c90d5f7ceaea4f0ed953713b421fbb3d75238a5ab3b083487dcff5bdd1ff5a04e09338718d3f47f13819b49012e4faf983f0f98dc54fbfeeef4108c7e068960a94781603579da921a935a862da976dfcf659 --dir /tmp/swtpm_setup.certs.BR0TT3 --tpm-spec-family 2.0 --tpm-spec-level 0 --tpm-spec-revision 183 --tpm-manufacturer id:00001014 --tpm-model swtpm --tpm-version id:20240125 --tpm2 --configfile /etc/swtpm-localca.conf --optsfile /etc/swtpm-localca.options
+swtpm_localca: Successfully created platform certificate locally.
+Successfully created NVRAM area 0x1c00002 for RSA 2048 EK certificate.
+Successfully created NVRAM area 0x1c08000 for platform certificate.
+Successfully created ECC EK with handle 0x81010016.
+  Invoking /usr/bin/swtpm_localca --type ek --ek x=a1e437713e84ca2cbc8649e9d93695f401b31f2d7695266908aa21dbc461cac35b346886049e25ef2bab1f7b7cf960fa,y=1cb547ae91d9821d1624cb974dfef894646869913ffff52ea7f017e528b4120a24d2b998f68c5c97b0e3aa309554ce65,id=secp384r1 --dir /tmp/swtpm_setup.certs.BR0TT3 --tpm-spec-family 2.0 --tpm-spec-level 0 --tpm-spec-revision 183 --tpm-manufacturer id:00001014 --tpm-model swtpm --tpm-version id:20240125 --tpm2 --configfile /etc/swtpm-localca.conf --optsfile /etc/swtpm-localca.options
+swtpm_localca: Successfully created EK certificate locally.
+Successfully created NVRAM area 0x1c00016 for ECC EK certificate.
+Successfully activated PCR banks sha256 among sha1,sha256,sha384,sha512.
+Successfully authored TPM state.
+Ending vTPM manufacturing @ Fri 14 Aug 2026 07:24:19 PM MDT
+--> Creating /dev/tpmrm0 device with swtpm_cuse.
+--> Creating /dev/tpmrm0 device with swtpm_cuse.
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 0 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 1 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 1 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 2 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 2 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 3 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 3 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 4 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 4 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 5 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 5 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 6 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 6 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 7 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 7 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 8 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 8 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 9 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 9 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 10 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 10 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 10 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 11 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 11 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 11 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 12 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 12 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 13 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 13 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 14 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 14 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 15 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 15 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 16 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 16 out of 17 new pods have been updated...
+Waiting for daemon set "k8s-tpm-device" rollout to finish: 16 of 17 updated pods are available...
+daemon set "k8s-tpm-device" successfully rolled out
+Using strategy: st5-AttUpd
+Deploying Mazu ConfigMap to namespace: default
+configmap "mazu-config" deleted from default namespace
+configmap/mazu-config created
+Deploying Mazu ConfigMap to namespace: istio-system
+configmap "mazu-config" deleted from istio-system namespace
+configmap/mazu-config created
+Deploying RBE PP ConfigMap to namespace: default
+configmap "rbe-pp" deleted from default namespace
+configmap/rbe-pp created
+Deploying RBE PP ConfigMap to namespace: istio-system
+configmap "rbe-pp" deleted from istio-system namespace
+configmap/rbe-pp created
+"k8s-tpm-device" already exists with the same configuration, skipping
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "k8s-tpm-device" chart repository
+Update Complete. ⎈Happy Helming!⎈
+Release "k8s-tpm-device" has been upgraded. Happy Helming!
+NAME: k8s-tpm-device
+LAST DEPLOYED: Sat Aug 15 01:25:52 2026
+NAMESPACE: tpm-device
+STATUS: deployed
+REVISION: 10
+TEST SUITE: None
+Deploying TPM public key ConfigMap to namespace: default
+configmap "tpm-pubkey" deleted from default namespace
+configmap/tpm-pubkey created
+Deploying TPM public key ConfigMap to namespace: istio-system
+configmap "tpm-pubkey" deleted from istio-system namespace
+configmap/tpm-pubkey created
+secret "tpm-keys" deleted from istio-system namespace
+secret/tpm-keys created
+Strategy: st5-AttUpd | Tag: st5-AttUpd | Duration: 240 seconds | RPS: 1000
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_012553/st5-AttUpd-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_012553/st5-AttUpd-240/1000.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Installing Istio....
+service "etcd" deleted from istio-system namespace
+statefulset.apps "etcd" deleted from istio-system namespace
+persistentvolumeclaim "etcd-data-etcd-0" deleted from istio-system namespace
+Error from server (AlreadyExists): namespaces "istio-system" already exists
+namespace already exists
+service/etcd created
+statefulset.apps/etcd created
+        |\          
+        | \         
+        |  \        
+        |   \       
+      /||    \      
+     / ||     \     
+    /  ||      \    
+   /   ||       \   
+  /    ||        \  
+ /     ||         \ 
+/______||__________\
+____________________
+  \__       _____/  
+     \_____/        
+
+WARNING: Istio 1.24.0 may be out of support (EOL) already: see https://istio.io/latest/docs/releases/supported-releases/ for supported releases
+
+- Processing resources for Istio core.
+- Processing resources for Istio core. Waiting for CustomResourceDefinition/, CustomResourceDefin...
+✔ Istio core installed ⛵️
+- Processing resources for Istiod.
+- Processing resources for Istiod. Waiting for Deployment/istio-system/istiod
+✔ Istiod installed 🧠
+- Processing resources for Ingress gateways.
+- Processing resources for Ingress gateways. Waiting for Deployment/istio-system/istio-ingressgat...
+✔ Ingress gateways installed 🛬
+- Pruning removed resources
+✔ Installation completeclusterrole.rbac.authorization.k8s.io/token-review-role unchanged
+clusterrolebinding.rbac.authorization.k8s.io/token-review-binding unchanged
+role.rbac.authorization.k8s.io/leader-election-key-curator-role unchanged
+rolebinding.rbac.authorization.k8s.io/leader-election-key-curator-role-binding unchanged
+namespace/default not labeled
+peerauthentication.security.istio.io/default created
+pod/istiod-fb9866b9d-rqhbt condition met
+pod/istio-ingressgateway-745cc59f79-9lqk9 condition met
+pod/istiod-fb9866b9d-rqhbt condition met
+pod/istio-ingressgateway-745cc59f79-9lqk9 condition met
+Waiting for 10 ready istio-ingressgateway replicas...
+istio-ingressgateway: 10 replicas Ready
+gateway.networking.istio.io/social-network-gateway created
+virtualservice.networking.istio.io/social-network created
+helm upgrade --install social-network /users/apoudel/DeathStarBench/socialNetwork/helm-chart/socialnetwork -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/socialnetwork-bench-values.yaml -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/sn-mazu-annotations-tpm.yaml -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/sn-hpa-values.yaml
+[1;30;44mMazu:[0m Waiting for all pods to become Ready....
+  01:26:36 not-ready=10/10
+  01:26:46 not-ready=2/27
+  all 27 pods Ready
+Ingress: 155.98.38.244:80
+[1;30;44mMazu:[0m Waiting for the frontend to answer....
+[1;30;44mMazu:[0m Seeding social graph from socfb-Reed98....
+http://155.98.38.244:80
+Registering Users...
+Succeeded: 962
+Adding follows...
+Succeeded: 37624
+Composing posts...
+Succeeded: 9424
+[1;30;44mMazu:[0m Checking timeline correctness....
+OVERLAP_PCT=0.0
+VERDICT=OK  timelines are distinct
+[1;30;44mMazu:[0m Enabling HPAs (post-seed, pre-sweep)....
+Waiting for HPA metrics to resolve...
+Letting post-seed CPU settle...
+  fleet at sweep start: 54
+Strategy: st5-AttUpd | Tag: st5-AttUpd | Duration: 240 seconds | RPS: 1000
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_013036/st5-AttUpd-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_013036/st5-AttUpd-240/1000.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Uninstalling Prometheus from istio-system....
+serviceaccount "prometheus" deleted from istio-system namespace
+configmap "prometheus" deleted from istio-system namespace
+clusterrole.rbac.authorization.k8s.io "prometheus" deleted
+clusterrolebinding.rbac.authorization.k8s.io "prometheus" deleted
+service "prometheus" deleted from istio-system namespace
+deployment.apps "prometheus" deleted from istio-system namespace
+Strategy: st5-AttUpd | Tag: st5-AttUpd | Duration: 240 seconds | RPS: 1000
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_013036/st5-AttUpd-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_013036/st5-AttUpd-240/1000.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Installing Prometheus in istio-system....
+serviceaccount/prometheus created
+configmap/prometheus created
+clusterrole.rbac.authorization.k8s.io/prometheus created
+clusterrolebinding.rbac.authorization.k8s.io/prometheus created
+service/prometheus created
+deployment.apps/prometheus created
+pod/prometheus-c9ff75ddb-gr9jz condition met
+Error from server (NotFound): pods "prometheus-c9ff75ddb-tnlj7" not found
+[1;30;44mMazu:[0m Prometheus is ready.
+pod/prometheus-c9ff75ddb-gr9jz condition met
+Forwarding from 127.0.0.1:9091 -> 9090
+Forwarding from [::1]:9091 -> 9090
+Handling connection for 9091
+Prometheus reachable
+[1;30;44mMazu:[0m --- st5-AttUpd @ 100 RPS for 240s ---.
+ 50.000%   17.45ms
+ 99.000%   46.27ms
+  Socket errors: connect 0, read 0, write 0, timeout 3413
+  Non-2xx or 3xx responses: 8
+Requests/sec:     95.25  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 01:30:44 -> 2026-08-15 01:34:44 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_100.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_100.json
+[1;30;44mMazu:[0m --- st5-AttUpd @ 200 RPS for 240s ---.
+ 50.000%   18.24ms
+ 99.000%   67.33ms
+  Socket errors: connect 0, read 0, write 0, timeout 754
+  Non-2xx or 3xx responses: 2
+Requests/sec:    191.13  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 01:34:45 -> 2026-08-15 01:38:45 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_200.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_200.json
+[1;30;44mMazu:[0m --- st5-AttUpd @ 400 RPS for 240s ---.
+ 50.000%   19.65ms
+ 99.000%    1.05s 
+  Socket errors: connect 0, read 0, write 0, timeout 30
+Requests/sec:    400.24  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 01:38:45 -> 2026-08-15 01:42:45 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_400.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_400.json
+[1;30;44mMazu:[0m --- st5-AttUpd @ 800 RPS for 240s ---.
+ 50.000%    6.72s 
+ 99.000%   43.48s 
+  Non-2xx or 3xx responses: 25
+Requests/sec:    726.34  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 01:42:46 -> 2026-08-15 01:46:46 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_800.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/st5-AttUpd/metrics_800.json
+Strategy: st5-AttUpd | Tag: st5-AttUpd | Duration: 240 seconds | RPS: 800
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_014647/st5-AttUpd-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_014647/st5-AttUpd-240/800.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Uninstalling Prometheus from istio-system....
+serviceaccount "prometheus" deleted from istio-system namespace
+configmap "prometheus" deleted from istio-system namespace
+clusterrole.rbac.authorization.k8s.io "prometheus" deleted
+clusterrolebinding.rbac.authorization.k8s.io "prometheus" deleted
+service "prometheus" deleted from istio-system namespace
+deployment.apps "prometheus" deleted from istio-system namespace
+[1;30;44mMazu:[0m === st5-AttUpd complete at Sat Aug 15 01:46:47 AM UTC 2026 ===.
+[1;30;44mMazu:[0m ############ STRATEGY: istio (substrate: baseline) ############.
+=== started at Sat Aug 15 01:46:47 AM UTC 2026 ===
+[1;30;44mMazu:[0m Tearing down social-network....
+horizontalpodautoscaler.autoscaling "nginx-thrift-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "compose-post-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "home-timeline-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "user-timeline-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "post-storage-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "social-graph-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "user-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "user-mention-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "text-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "url-shorten-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "unique-id-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "media-service-hpa" deleted from default namespace
+horizontalpodautoscaler.autoscaling "media-frontend-hpa" deleted from default namespace
+release "social-network" uninstalled
+gateway.networking.istio.io "social-network-gateway" deleted from default namespace
+virtualservice.networking.istio.io "social-network" deleted from default namespace
+No resources found
+No resources found
+No resources found
+[1;30;44mMazu:[0m Removing Istio....
+Strategy: istio | Tag: istio | Duration: 240 seconds | RPS: 800
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_014731/istio-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_014731/istio-240/800.txt
+/users/apoudel/DeathStarBench/socialNetwork
+All Istio resources will be pruned from the cluster
+
+  Removed apps/v1, Kind=Deployment/istio-ingressgateway.istio-system.
+  Removed apps/v1, Kind=Deployment/istiod.istio-system.
+  Removed /v1, Kind=Service/istio-ingressgateway.istio-system.
+  Removed /v1, Kind=Service/istiod.istio-system.
+  Removed /v1, Kind=ConfigMap/istio.istio-system.
+  Removed /v1, Kind=ConfigMap/istio-sidecar-injector.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-9lqk9.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-gjr69.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-h2t8q.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-kf6gp.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-knr2l.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-nclrq.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-p4268.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-pb5mj.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-rwwxl.istio-system.
+  Removed /v1, Kind=Pod/istio-ingressgateway-745cc59f79-zlszj.istio-system.
+  Removed /v1, Kind=Pod/istiod-fb9866b9d-rqhbt.istio-system.
+  Removed /v1, Kind=ServiceAccount/istio-ingressgateway-service-account.istio-system.
+  Removed /v1, Kind=ServiceAccount/istio-reader-service-account.istio-system.
+  Removed /v1, Kind=ServiceAccount/istiod.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=RoleBinding/istio-ingressgateway-sds.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=RoleBinding/istiod.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=Role/istio-ingressgateway-sds.istio-system.
+  Removed rbac.authorization.k8s.io/v1, Kind=Role/istiod.istio-system.
+  Removed policy/v1, Kind=PodDisruptionBudget/istio-ingressgateway.istio-system.
+  Removed policy/v1, Kind=PodDisruptionBudget/istiod.istio-system.
+  Removed autoscaling/v2, Kind=HorizontalPodAutoscaler/istio-ingressgateway.istio-system.
+  Removed autoscaling/v2, Kind=HorizontalPodAutoscaler/istiod.istio-system.
+  Removed admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration/istio-revision-tag-default..
+  Removed admissionregistration.k8s.io/v1, Kind=MutatingWebhookConfiguration/istio-sidecar-injector..
+  Removed admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration/istio-validator-istio-system..
+  Removed admissionregistration.k8s.io/v1, Kind=ValidatingWebhookConfiguration/istiod-default-validator..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRole/istio-reader-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRole/istiod-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRole/istiod-gateway-controller-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding/istio-reader-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding/istiod-clusterrole-istio-system..
+  Removed rbac.authorization.k8s.io/v1, Kind=ClusterRoleBinding/istiod-gateway-controller-istio-system..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/authorizationpolicies.security.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/destinationrules.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/envoyfilters.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/gateways.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/peerauthentications.security.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/proxyconfigs.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/requestauthentications.security.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/serviceentries.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/sidecars.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/telemetries.telemetry.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/virtualservices.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/wasmplugins.extensions.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/workloadentries.networking.istio.io..
+  Removed apiextensions.k8s.io/v1, Kind=CustomResourceDefinition/workloadgroups.networking.istio.io..
+
+✔ Uninstall completelease.coordination.k8s.io "istiod-key-curator-leader" deleted from istio-system namespace
+pod/istiod-fb9866b9d-rqhbt condition met
+pod/istio-ingressgateway-745cc59f79-9lqk9 condition met
+pod/istio-ingressgateway-745cc59f79-gjr69 condition met
+pod/istio-ingressgateway-745cc59f79-h2t8q condition met
+pod/istio-ingressgateway-745cc59f79-kf6gp condition met
+pod/istio-ingressgateway-745cc59f79-knr2l condition met
+pod/istio-ingressgateway-745cc59f79-nclrq condition met
+pod/istio-ingressgateway-745cc59f79-p4268 condition met
+pod/istio-ingressgateway-745cc59f79-pb5mj condition met
+pod/istio-ingressgateway-745cc59f79-rwwxl condition met
+pod/istio-ingressgateway-745cc59f79-zlszj condition met
+pod "kube-apiserver-node-0" deleted from kube-system namespace
+pod "kube-apiserver-node-1" deleted from kube-system namespace
+Waiting for 2 kube-apiserver pods to become Ready...
+All kube-apiserver pods are Ready
+Skipping swtpm recreation for istio (does not use the TPM)
+Using strategy: istio
+Unknown strategy: istio
+Deploying Mazu ConfigMap to namespace: default
+configmap "mazu-config" deleted from default namespace
+configmap/mazu-config created
+Deploying Mazu ConfigMap to namespace: istio-system
+configmap "mazu-config" deleted from istio-system namespace
+configmap/mazu-config created
+Deploying RBE PP ConfigMap to namespace: default
+configmap "rbe-pp" deleted from default namespace
+configmap/rbe-pp created
+Deploying RBE PP ConfigMap to namespace: istio-system
+configmap "rbe-pp" deleted from istio-system namespace
+configmap/rbe-pp created
+Strategy: istio | Tag: istio | Duration: 240 seconds | RPS: 800
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_014750/istio-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_014750/istio-240/800.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Installing Istio....
+        |\          
+        | \         
+        |  \        
+        |   \       
+      /||    \      
+     / ||     \     
+    /  ||      \    
+   /   ||       \   
+  /    ||        \  
+ /     ||         \ 
+/______||__________\
+____________________
+  \__       _____/  
+     \_____/        
+
+WARNING: Istio 1.24.0 may be out of support (EOL) already: see https://istio.io/latest/docs/releases/supported-releases/ for supported releases
+
+- Processing resources for Istio core.
+- Processing resources for Istio core. Waiting for CustomResourceDefinition/, CustomResourceDefin...
+✔ Istio core installed ⛵️
+- Processing resources for Istiod.
+- Processing resources for Istiod. Waiting for Deployment/istio-system/istiod
+✔ Istiod installed 🧠
+- Processing resources for Ingress gateways.
+- Processing resources for Ingress gateways. Waiting for Deployment/istio-system/istio-ingressgat...
+✔ Ingress gateways installed 🛬
+- Pruning removed resources
+✔ Installation completenamespace/default not labeled
+peerauthentication.security.istio.io/default created
+deployment.apps/istio-ingressgateway patched
+horizontalpodautoscaler.autoscaling/istio-ingressgateway patched
+Waiting for deployment "istio-ingressgateway" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "istio-ingressgateway" rollout to finish: 1 old replicas are pending termination...
+deployment "istio-ingressgateway" successfully rolled out
+pod/istiod-8574d68d5c-qsjjx condition met
+pod/istio-ingressgateway-75fb7d94d9-tgwnx condition met
+pod/istio-ingressgateway-7fdd86c74b-mv7nq condition met
+Waiting for 10 ready istio-ingressgateway replicas...
+istio-ingressgateway: 10 replicas Ready
+gateway.networking.istio.io/social-network-gateway created
+virtualservice.networking.istio.io/social-network created
+helm upgrade --install social-network /users/apoudel/DeathStarBench/socialNetwork/helm-chart/socialnetwork -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/socialnetwork-bench-values.yaml -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/sn-mazu-annotations.yaml -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/sn-hpa-values.yaml
+[1;30;44mMazu:[0m Waiting for all pods to become Ready....
+  01:48:33 not-ready=10/10
+  01:48:43 not-ready=2/27
+  all 27 pods Ready
+Ingress: 155.98.38.244:80
+[1;30;44mMazu:[0m Waiting for the frontend to answer....
+[1;30;44mMazu:[0m Seeding social graph from socfb-Reed98....
+http://155.98.38.244:80
+Registering Users...
+Succeeded: 962
+Adding follows...
+Succeeded: 37624
+Composing posts...
+Succeeded: 9424
+[1;30;44mMazu:[0m Checking timeline correctness....
+OVERLAP_PCT=0.0
+VERDICT=OK  timelines are distinct
+[1;30;44mMazu:[0m Enabling HPAs (post-seed, pre-sweep)....
+Waiting for HPA metrics to resolve...
+Letting post-seed CPU settle...
+  fleet at sweep start: 51
+Strategy: istio | Tag: istio | Duration: 240 seconds | RPS: 800
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_015230/istio-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_015230/istio-240/800.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Uninstalling Prometheus from istio-system....
+Strategy: istio | Tag: istio | Duration: 240 seconds | RPS: 800
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_015230/istio-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_015230/istio-240/800.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Installing Prometheus in istio-system....
+serviceaccount/prometheus created
+configmap/prometheus created
+clusterrole.rbac.authorization.k8s.io/prometheus created
+clusterrolebinding.rbac.authorization.k8s.io/prometheus created
+service/prometheus created
+deployment.apps/prometheus created
+pod/prometheus-c9ff75ddb-96gtg condition met
+[1;30;44mMazu:[0m Prometheus is ready.
+pod/prometheus-c9ff75ddb-96gtg condition met
+Forwarding from 127.0.0.1:9091 -> 9090
+Forwarding from [::1]:9091 -> 9090
+Handling connection for 9091
+Prometheus reachable
+[1;30;44mMazu:[0m --- istio @ 100 RPS for 240s ---.
+ 50.000%   16.74ms
+ 99.000%   36.13ms
+  Socket errors: connect 0, read 0, write 0, timeout 3412
+  Non-2xx or 3xx responses: 3
+Requests/sec:     95.25  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 01:52:38 -> 2026-08-15 01:56:38 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_100.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_100.json
+[1;30;44mMazu:[0m --- istio @ 200 RPS for 240s ---.
+ 50.000%   17.90ms
+ 99.000%   33.41ms
+  Socket errors: connect 0, read 0, write 0, timeout 743
+  Non-2xx or 3xx responses: 1
+Requests/sec:    191.14  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 01:56:39 -> 2026-08-15 02:00:39 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_200.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_200.json
+[1;30;44mMazu:[0m --- istio @ 400 RPS for 240s ---.
+ 50.000%   18.82ms
+ 99.000%   42.24ms
+  Socket errors: connect 0, read 0, write 0, timeout 30
+Requests/sec:    400.32  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 02:00:39 -> 2026-08-15 02:04:39 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_400.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_400.json
+[1;30;44mMazu:[0m --- istio @ 800 RPS for 240s ---.
+ 50.000%    3.68s 
+ 99.000%   16.52s 
+Requests/sec:    765.82  
+Collecting metrics from Prometheus (http://localhost:9091)
+  Window: 2026-08-15 02:04:40 -> 2026-08-15 02:08:40 (240s)
+  Output: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_800.json
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Handling connection for 9091
+Metrics saved to /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/istio/metrics_800.json
+Strategy: istio | Tag: istio | Duration: 240 seconds | RPS: 800
+Results Directory: /users/apoudel/DeathStarBench/socialNetwork/20260815_020841/istio-240
+Output File: /users/apoudel/DeathStarBench/socialNetwork/20260815_020841/istio-240/800.txt
+/users/apoudel/DeathStarBench/socialNetwork
+[1;30;44mMazu:[0m Uninstalling Prometheus from istio-system....
+serviceaccount "prometheus" deleted from istio-system namespace
+configmap "prometheus" deleted from istio-system namespace
+clusterrole.rbac.authorization.k8s.io "prometheus" deleted
+clusterrolebinding.rbac.authorization.k8s.io "prometheus" deleted
+service "prometheus" deleted from istio-system namespace
+deployment.apps "prometheus" deleted from istio-system namespace
+[1;30;44mMazu:[0m === istio complete at Sat Aug 15 02:08:41 AM UTC 2026 ===.
+[1;30;44mMazu:[0m === DONE ===.
+Summary: /users/apoudel/DeathStarBench/socialNetwork/results/sn-churn-08-15-26_012327/summary.csv
+strategy    rps_target  rps_delivered  p50_ms   p99_ms    non_2xx  timeline_overlap_pct  pods
+st5-AttUpd  100         95.25          17.45    46.27     8        0.0                   43
+st5-AttUpd  200         191.13         18.24    67.33     2        0.0                   90
+st5-AttUpd  400         400.24         19.65    1050.00   0        0.0                   88
+st5-AttUpd  800         726.34         6720.00  43480.00  25       0.0                   106
+istio       100         95.25          16.74    36.13     3        0.0                   35
+istio       200         191.14         17.90    33.41     1        0.0                   38
+istio       400         400.32         18.82    42.24     0        0.0                   57
+istio       800         765.82         3680.00  16520.00  0        0.0                   79

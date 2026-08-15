@@ -73,8 +73,8 @@ spec:
                 - key: node-role.kubernetes.io/control-plane
                   operator: DoesNotExist
         hpaSpec:
-          minReplicas: 5
-          maxReplicas: 5
+          minReplicas: 10
+          maxReplicas: 10
         overlays:
         - kind: Deployment
           name: istio-ingressgateway

@@ -5,6 +5,14 @@ metadata:
    name: redis-cluster-readiness-hook
    annotations:
        "helm.sh/hook": "post-install"
+       {{- /*
+         Same reasoning as the mongodb hook: it talks to redis through the
+         mesh under STRICT mTLS, so it needs the Mazu sidecar annotations or
+         its sidecar never becomes Ready and the hook blocks helm forever.
+       */}}
+       {{- range $k, $v := (.Values.global.podAnnotations | default dict) }}
+       {{ $k }}: {{ $v | quote }}
+       {{- end }}
 spec:
   containers:
   - name: post-install-container

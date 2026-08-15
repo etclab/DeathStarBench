@@ -1,0 +1,1 @@
+helm upgrade --install social-network /users/apoudel/DeathStarBench/socialNetwork/helm-chart/socialnetwork -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/socialnetwork-bench-values.yaml -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/sn-mazu-annotations.yaml -f /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/sn-hpa-values.yaml

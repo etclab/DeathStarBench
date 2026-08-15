@@ -1,0 +1,12 @@
+user 5: user-timeline=3 posts, home-timeline=100 posts
+  jaccard overlap = 0.0%
+user 42: user-timeline=8 posts, home-timeline=29 posts
+  jaccard overlap = 0.0%
+user 100: user-timeline=11 posts, home-timeline=100 posts
+  jaccard overlap = 0.0%
+user 300: user-timeline=3 posts, home-timeline=100 posts
+  jaccard overlap = 0.0%
+user 700: user-timeline=12 posts, home-timeline=100 posts
+  jaccard overlap = 0.0%
+OVERLAP_PCT=0.0
+VERDICT=OK  timelines are distinct

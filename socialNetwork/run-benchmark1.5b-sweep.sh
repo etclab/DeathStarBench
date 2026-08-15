@@ -38,13 +38,20 @@ STRATEGIES=(${STRATEGIES:-"st5-AttUpd" "istio"})
 # RPS_VALUES=(${RPS_VALUES:-100 200 400 600 800 1000 1200 1400 1600 1800 2000 2200 2400 2600 2800 3000 3200})
 # RPS_VALUES=(${RPS_VALUES:-100 200 400 600 800 1000 1200 1400 1600 1800 2000})
 # RPS_VALUES=(${RPS_VALUES:-100 200 400 800 1200 1600 2000 2400 2800 3200})
-RPS_VALUES=(${RPS_VALUES:-100 200 400 600 800 1000 1200 1400 1600 1800 2000 2200 2400 2600})
+# RPS_VALUES=(${RPS_VALUES:-100 400 800 1200 1600 2000 2400 2800 3200 3600 4000})
+RPS_VALUES=(${RPS_VALUES:-100 200 400 800 1000 1500 2000 2500 3000 3500 4000 4500 5000})
+# RPS_VALUES=(${RPS_VALUES:-100 1000 2000 3000 4000})
 # DURATION=${DURATION:-120}
 DURATION=${DURATION:-240}
 RESULTS_DIR="${RESULTS_DIR:-${SCRIPT_DIR}/results/benchmark1.5b-sweep-$(date +%m-%d-%y_%H%M%S)}"
 PROM_PORT=${PROM_PORT:-9091}
 
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
+
+# Ingress gateway fleet size. Keep in sync with hpaSpec min/maxReplicas in
+# scratch/yaml/istio-operator.yaml and scratch/yaml/istio-operator-tpm.yaml --
+# the mazu arms get it from there, the istio baseline is patched to match below.
+GW_REPLICAS=${GW_REPLICAS:-10}
 
 source_setup() {
     # Source the helper functions from setup_social_network.sh without executing commands
@@ -121,13 +128,13 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # ---- Create fresh TPMs on all nodes ----
         echo "Creating TPMs on all nodes..."
-        NODE0="apoudel@pc781.emulab.net"
+        NODE0="apoudel@pc841.emulab.net"
         SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
         if ! ssh $SSH_OPTS "$NODE0" 'test -d ~/trinc'; then
             echo "First run: setting up trinc/swtpm on all nodes..."
-            ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d apt.emulab.net apt033 apt030 apt029 apt036
+            ${SCRIPT_DIR}/dev/setup-tpm-all-nodes.sh -d emulab.net pc829 pc841
         fi
-        ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1 node-2 node-3 node-4 node-5; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
+        ssh $SSH_OPTS "$NODE0" 'for node in node-0 node-1; do ssh "$node" "~/trinc/swtpm-test/setup-tpm.sh create_tpm" & done; wait'
         echo "TPMs created on all nodes"
 
         sleep 60
@@ -138,6 +145,25 @@ for STRAT in "${STRATEGIES[@]}"; do
             ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
 
             ${SCRIPT_DIR}/setup_social_network.sh install-istio
+
+            # install-istio applies the stock default profile, which gives the
+            # gateway an HPA of 1..5 and no node affinity. The mazu arms get a
+            # fixed fleet of GW_REPLICAS pods kept off the control-plane nodes
+            # (scratch/yaml/istio-operator*.yaml). Match that here -- otherwise
+            # the baseline saturates its gateway at high RPS and the comparison
+            # measures gateway starvation instead of the data plane.
+            kubectl -n istio-system patch deployment istio-ingressgateway --type=merge -p '{
+              "spec": {"template": {"spec": {"affinity": {"nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {"nodeSelectorTerms": [
+                  {"matchExpressions": [
+                    {"key": "node-role.kubernetes.io/control-plane", "operator": "DoesNotExist"}
+                  ]}
+                ]}
+              }}}}}
+            }'
+            kubectl -n istio-system patch hpa istio-ingressgateway --type=merge \
+                -p "{\"spec\": {\"minReplicas\": ${GW_REPLICAS}, \"maxReplicas\": ${GW_REPLICAS}}}"
+            kubectl -n istio-system rollout status deployment/istio-ingressgateway --timeout=300s
         else
             ${SCRIPT_DIR}/dev/deploy-mazu-configmap.sh "$STRAT"
             ${SCRIPT_DIR}/dev/deploy-rbe-pp.sh
@@ -166,6 +192,21 @@ for STRAT in "${STRATEGIES[@]}"; do
         kubectl wait --for=condition=Ready pod -l app=reviews --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
         kubectl wait --for=condition=Ready pod -l app=istio-ingressgateway -n istio-system --timeout=300s
+
+        # The wait above only covers the pods that exist at that moment, so hold
+        # until the full gateway fleet is Ready in both arms.
+        echo "Waiting for ${GW_REPLICAS} ready istio-ingressgateway replicas..."
+        for i in $(seq 1 60); do
+            GW_READY=$(kubectl -n istio-system get deploy istio-ingressgateway \
+                -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+            [ "${GW_READY:-0}" -ge "$GW_REPLICAS" ] && break
+            if [ "$i" -eq 60 ]; then
+                echo "ERROR: only ${GW_READY:-0}/${GW_REPLICAS} istio-ingressgateway replicas Ready after 300s"
+                exit 1
+            fi
+            sleep 5
+        done
+        echo "istio-ingressgateway: ${GW_READY} replicas Ready"
 
         # ---- Fetch ingress ----
         get_ingress_ip_port

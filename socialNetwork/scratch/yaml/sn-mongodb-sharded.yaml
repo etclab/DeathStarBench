@@ -1,0 +1,92 @@
+# Arm G: MongoDB sharded topology (mongos + config server + shards).
+#
+# Layer on top of socialnetwork-bench-values.yaml and sn-images-legacy.yaml:
+#   -f socialnetwork-bench-values.yaml -f sn-images-legacy.yaml -f sn-mongodb-sharded.yaml
+#
+# Requires a generous helm --timeout (10m+); the shard replica sets take a
+# while to elect primaries before the post-install sharding hook can run.
+#
+# WHAT CHANGES IN THE APPLICATION
+# -------------------------------
+# service-config.tpl swings all six mongodb clients (social-graph, post,
+# user, user-timeline, url-shorten, media) from their own dedicated
+# mongod to one shared `root:password@mongodb-sharded:27017`.
+#
+# KEYSPACE SAFETY: verified OK.
+#   Each service uses its own database name (social-graph, post, user,
+#   user-timeline, url-shorten, media), so mongos routes by db.collection
+#   and the services cannot tread on each other. The post-install hook in
+#   templates/hooks/mongodb/ enables sharding per collection.
+#
+# SCALING KNOBS (override with --set from the runner):
+#   mongodb-sharded.shards                     -- number of shards
+#   mongodb-sharded.shardsvr.dataNode.replicaCount -- replicas per shard
+#   mongodb-sharded.mongos.replicaCount        -- number of query routers
+#
+# NOTE: mongos.replicaCount defaults to 1 in the subchart. Like mcrouter,
+# that one pod fronts every database operation in the application, so it is
+# a serialization point in its own right. Raised to 3 here.
+#
+# NOTE ON PERSISTENCE: disabled on purpose. The chart defaults to PVCs, and
+# this cluster's only StorageClass is NFS-backed (nfs-subdir-external-
+# provisioner). Running mongod's journal over NFS would dominate the
+# measurement and make this arm incomparable to the standalone baseline,
+# which kept data in the container filesystem. emptyDir keeps the storage
+# path identical across arms. THIS MEANS THE DATASET IS STILL VOLATILE --
+# the "seed after the last helm upgrade" rule from SOCIALNETWORK-ON-ISTIO.md
+# still applies here.
+
+global:
+  mongodb:
+    standalone:
+      enabled: false
+    sharding:
+      enabled: true
+      svc:
+        name: "mongodb-sharded"
+        user: "root"
+        password: "password"
+        port: 27017
+
+mongodb-sharded:
+  fullnameOverride: mongodb-sharded
+  auth:
+    rootPassword: "password"
+    replicaSetKey: "password"
+
+  shards: 3
+
+  shardsvr:
+    dataNode:
+      replicaCount: 2
+      resources:
+        requests:
+          cpu: "1"
+          memory: 2Gi
+        limits:
+          cpu: "4"
+          memory: 8Gi
+    persistence:
+      enabled: false
+
+  configsvr:
+    replicaCount: 1
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+
+  mongos:
+    replicaCount: 3
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 4Gi

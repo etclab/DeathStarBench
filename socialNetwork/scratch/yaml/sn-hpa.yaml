@@ -1,0 +1,488 @@
+# HPAs for the SocialNetwork stateless tier -- the churn knob for the
+# Istio vs Mazu comparison. Counterpart to scratch/yaml/bf-hpa.yaml, which
+# does the same job for Bookinfo in run-benchmark1.5b-sweep.sh.
+#
+# WHY TWO METRICS
+#   Each HPA scales on EITHER the app container CPU or the istio-proxy CPU,
+#   whichever demands more pods (HPA computes desiredReplicas per metric and
+#   takes the Max). The sidecar metric is the interesting one here: Mazu's
+#   proxy carries RBE and attestation work that stock Envoy does not, so it
+#   saturates earlier and should drive a visibly different scale-up curve.
+#
+#   Utilization is usage/request. The injected sidecar requests 100m
+#   (verified on a live pod), the app containers request 1 CPU via
+#   socialnetwork-bench-values.yaml -- so the sidecar metric is ~10x more
+#   sensitive per core. That is deliberate: it is the signal being measured.
+#
+# WHY NO DATASTORES
+#   Only the stateless Thrift services and the nginx/media frontends appear
+#   here. The standalone mongo/redis/memcached pods sit behind a single
+#   ClusterIP with no replication -- scaling them would spray reads and writes
+#   across independent instances and silently corrupt results. See the note in
+#   socialnetwork-bench-values.yaml. Use the sharded/cluster topologies if you
+#   need those tiers to scale.
+#
+# WHY minReplicas: 1
+#   Churn is the point. Pair this with sn-hpa-values.yaml, which drops the
+#   pinned replica counts to 1 so the fleet has somewhere to grow from. The
+#   floor here and the chart's replicas MUST match or the first HPA sync
+#   immediately rewrites the fleet and the early samples are meaningless.
+#
+# behavior: react on the first sample over threshold (no stabilization window)
+# and add 2 pods every 2s, matching bf-hpa.yaml so the two benchmarks are
+# directly comparable.
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-thrift-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-thrift
+  minReplicas: 1
+  maxReplicas: 20
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: nginx-thrift
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: compose-post-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: compose-post-service
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: compose-post-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: home-timeline-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: home-timeline-service
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: home-timeline-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user-timeline-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user-timeline-service
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: user-timeline-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: post-storage-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: post-storage-service
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: post-storage-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: social-graph-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: social-graph-service
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: social-graph-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user-service
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: user-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user-mention-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user-mention-service
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: user-mention-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: text-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: text-service
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: text-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: url-shorten-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: url-shorten-service
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: url-shorten-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: unique-id-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: unique-id-service
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: unique-id-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: media-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: media-service
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: media-service
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: media-frontend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: media-frontend
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: media-frontend
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 2
+      selectPolicy: Max

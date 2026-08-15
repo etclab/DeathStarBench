@@ -2,9 +2,9 @@
 """Plot ready-pod counts from pods-<rps>-sum.csv files.
 
 Produces three figures under <run-dir>:
-  - plot_pod_totals.pdf:    8x2 line plot of total ready pods vs. index,
+  - plot_pod_totals.pdf:    Nx2 line plot of total ready pods vs. index,
                             one subplot per rps, comparing strategies.
-  - plot_pod_breakdown.pdf: 8x2 grouped stacked bars sampled every 10s
+  - plot_pod_breakdown.pdf: Nx2 grouped stacked bars sampled every 10s
                             (plus the final index), per rps, with two bars
                             per bucket (one per strategy) stacked by
                             app-version.
@@ -17,6 +17,7 @@ Usage: ./plot_pods.py <benchmark-run-dir>
 
 import argparse
 import csv
+import re
 import sys
 from pathlib import Path
 
@@ -24,14 +25,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 STRATEGIES = ["istio", "st5-AttUpd"]
-RPS_VALUES = [50, 100, 200, 300, 400, 500, 600, 700,
-              800, 900, 1000, 1100, 1200, 1300, 1400, 1500]
-# Subset of RPS_VALUES to overlay in the scaling figure (plot_pod_scaling.pdf).
-# Edit this list to compare a different range of rps values.
-SCALING_RPS_VALUES = [500, 600, 700, 800]
+# Subset of the run's rps values to overlay in the scaling figure
+# (plot_pod_scaling.pdf). Leave empty to use every rps in the run.
+SCALING_RPS_VALUES: list[int] = []
 APP_COLS = ["details-v1", "productpage-v1", "ratings-v1",
             "reviews-v1", "reviews-v2", "reviews-v3"]
 SAMPLE_EVERY = 10  # seconds (== rows, since rows are 1s apart)
+
+
+def discover_rps(run_dir: Path) -> list[int]:
+    """Return the rps values actually present in the run, ascending.
+
+    Derived from the pods-<rps>-sum.csv files rather than hardcoded, so the
+    figures follow whatever RPS_VALUES the sweep script was run with.
+    """
+    rps = set()
+    for p in run_dir.glob("*/pods-*-sum.csv"):
+        m = re.fullmatch(r"pods-(\d+)-sum\.csv", p.name)
+        if m:
+            rps.add(int(m.group(1)))
+    return sorted(rps)
+
+
+def make_grid(n: int, width: float, height_per_row: float):
+    """Two-column subplot grid sized for n panels; extra axes are hidden."""
+    rows = max(1, -(-n // 2))
+    fig, axes = plt.subplots(rows, 2, figsize=(width, height_per_row * rows))
+    axes = np.atleast_1d(axes).flatten()
+    for ax in axes[n:]:
+        ax.set_visible(False)
+    return fig, axes
 
 
 def load_sum(path: Path) -> dict[str, list[int]]:
@@ -43,11 +66,10 @@ def load_sum(path: Path) -> dict[str, list[int]]:
     return cols
 
 
-def plot_totals(run_dir: Path, out: Path) -> None:
-    fig, axes = plt.subplots(8, 2, figsize=(12, 20))
-    axes = axes.flatten()
+def plot_totals(run_dir: Path, out: Path, rps_values: list[int]) -> None:
+    fig, axes = make_grid(len(rps_values), 12, 2.5)
 
-    for i, rps in enumerate(RPS_VALUES):
+    for i, rps in enumerate(rps_values):
         ax = axes[i]
         for strat in STRATEGIES:
             p = run_dir / strat / f"pods-{rps}-sum.csv"
@@ -71,15 +93,14 @@ def plot_totals(run_dir: Path, out: Path) -> None:
     plt.close(fig)
 
 
-def plot_breakdown(run_dir: Path, out: Path) -> None:
-    fig, axes = plt.subplots(8, 2, figsize=(14, 22))
-    axes = axes.flatten()
+def plot_breakdown(run_dir: Path, out: Path, rps_values: list[int]) -> None:
+    fig, axes = make_grid(len(rps_values), 14, 2.75)
 
     cmap = plt.get_cmap("tab10")
     app_colors = {a: cmap(i) for i, a in enumerate(APP_COLS)}
     bar_w = 0.4
 
-    for i, rps in enumerate(RPS_VALUES):
+    for i, rps in enumerate(rps_values):
         ax = axes[i]
         per_strat: dict[str, dict[str, list[int]]] = {}
         for strat in STRATEGIES:
@@ -141,14 +162,15 @@ def plot_breakdown(run_dir: Path, out: Path) -> None:
     plt.close(fig)
 
 
-def plot_scaling(run_dir: Path, out: Path) -> None:
+def plot_scaling(run_dir: Path, out: Path, rps_values: list[int]) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(15, 6), sharey=True)
 
     # rps curves distinguished by (color, marker). Lines stay solid so the
     # curves themselves are easy to read. Colors are distributed across the
     # selected rps values from the tab10 palette so each rps gets its own
     # color; markers cycle through 4 shapes for additional differentiation.
-    rps_to_plot = SCALING_RPS_VALUES
+    rps_to_plot = [r for r in rps_values if r in SCALING_RPS_VALUES] \
+        if SCALING_RPS_VALUES else rps_values
     palette = plt.get_cmap("tab10").colors
     markers = ["*", "_", "x", "o"]
     style_for: dict[int, dict] = {}
@@ -193,9 +215,16 @@ def main() -> int:
         print(f"error: {args.run_dir} is not a directory", file=sys.stderr)
         return 1
 
-    plot_totals(args.run_dir, args.run_dir / "plot_pod_totals.pdf")
-    plot_breakdown(args.run_dir, args.run_dir / "plot_pod_breakdown.pdf")
-    plot_scaling(args.run_dir, args.run_dir / "plot_pod_scaling.pdf")
+    rps_values = discover_rps(args.run_dir)
+    if not rps_values:
+        print(f"error: no pods-<rps>-sum.csv files found under {args.run_dir}/*/",
+              file=sys.stderr)
+        return 1
+    print(f"rps values in run: {rps_values}")
+
+    plot_totals(args.run_dir, args.run_dir / "plot_pod_totals.pdf", rps_values)
+    plot_breakdown(args.run_dir, args.run_dir / "plot_pod_breakdown.pdf", rps_values)
+    plot_scaling(args.run_dir, args.run_dir / "plot_pod_scaling.pdf", rps_values)
     return 0
 
 

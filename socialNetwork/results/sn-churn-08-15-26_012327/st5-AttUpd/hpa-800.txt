@@ -1,0 +1,14 @@
+NAME                        REFERENCE                          TARGETS            MINPODS   MAXPODS   REPLICAS   AGE
+compose-post-service-hpa    Deployment/compose-post-service    53%/70%, 2%/70%    1         15        8          18m
+home-timeline-service-hpa   Deployment/home-timeline-service   64%/70%, 1%/70%    1         15        15         18m
+media-frontend-hpa          Deployment/media-frontend          34%/70%, 0%/70%    1         8         1          18m
+media-service-hpa           Deployment/media-service           44%/70%, 1%/70%    1         8         1          18m
+nginx-thrift-hpa            Deployment/nginx-thrift            74%/70%, 17%/70%   1         20        20         18m
+post-storage-service-hpa    Deployment/post-storage-service    202%/70%, 6%/70%   1         15        15         18m
+social-graph-service-hpa    Deployment/social-graph-service    45%/70%, 1%/70%    1         15        2          18m
+text-service-hpa            Deployment/text-service            64%/70%, 4%/70%    1         8         2          18m
+unique-id-service-hpa       Deployment/unique-id-service       36%/70%, 0%/70%    1         8         2          18m
+url-shorten-service-hpa     Deployment/url-shorten-service     44%/70%, 2%/70%    1         8         2          18m
+user-mention-service-hpa    Deployment/user-mention-service    70%/70%, 0%/70%    1         8         8          18m
+user-service-hpa            Deployment/user-service            50%/70%, 1%/70%    1         8         1          18m
+user-timeline-service-hpa   Deployment/user-timeline-service   92%/70%, 1%/70%    1         15        14         18m

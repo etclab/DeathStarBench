@@ -15,6 +15,29 @@ spec:
       labels:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
+      {{- /*
+        Pod annotations, merged from global and per-service values.
+
+        This exists for the Mazu strategy arms. A Mazu sidecar refuses to
+        become Ready ("RBE registration not yet confirmed by Key Curator")
+        unless the RBE public params -- and, for the TPM strategies, the TPM
+        pubkeys -- are mounted into it via the sidecar.istio.io/userVolume and
+        sidecar.istio.io/userVolumeMount annotations. The Bookinfo manifests
+        in scratch/yaml/bookinfo-const*.yaml carry these inline on every
+        deployment; this chart had nowhere to put them, so its pods hung
+        forever under Mazu while the gateway (which gets the volumes from
+        istio-operator*.yaml) came up fine.
+
+        See scratch/yaml/sn-mazu-annotations*.yaml for the values to pass.
+        Harmless when unset.
+      */}}
+      {{- $annotations := merge (deepCopy (.Values.podAnnotations | default dict)) (.Values.global.podAnnotations | default dict) }}
+      {{- if $annotations }}
+      annotations:
+        {{- range $k, $v := $annotations }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      {{- end }}
     spec:
       {{- if .Values.nodeName}}
       nodeName: {{ .Values.nodeName }}

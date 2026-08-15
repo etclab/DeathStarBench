@@ -15,7 +15,15 @@ spec:
       labels:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
-    spec: 
+      {{- /* See the note in _baseDeployment.tpl -- required by the Mazu arms. */}}
+      {{- $annotations := merge (deepCopy (.Values.podAnnotations | default dict)) (.Values.global.podAnnotations | default dict) }}
+      {{- if $annotations }}
+      annotations:
+        {{- range $k, $v := $annotations }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+      {{- end }}
+    spec:
       containers:
       {{- with .Values.container }}
       - name: "{{ .name }}"

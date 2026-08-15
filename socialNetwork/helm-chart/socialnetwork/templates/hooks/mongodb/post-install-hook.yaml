@@ -5,6 +5,20 @@ metadata:
    name: setup-collection-sharding-hook
    annotations:
        "helm.sh/hook": "post-install"
+       {{- /*
+         This hook runs INSIDE the mesh on purpose: mtls.yaml sets a mesh-wide
+         STRICT PeerAuthentication, so a hook with sidecar.istio.io/inject=false
+         (as the mcrouter hook uses -- that one only talks to the API server)
+         would be rejected by mongos. Being in the mesh means it needs the same
+         Mazu sidecar annotations as every other pod, or its sidecar never
+         registers with the Key Curator, its mongo connection never succeeds,
+         setup_mongo() retries forever, and `helm install` blocks on the hook
+         until it times out. See scratch/yaml/sn-mazu-annotations*.yaml.
+         Harmless when unset (the plain-Istio arms).
+       */}}
+       {{- range $k, $v := (.Values.global.podAnnotations | default dict) }}
+       {{ $k }}: {{ $v | quote }}
+       {{- end }}
 spec:
   containers:
   - name: post-install-container
