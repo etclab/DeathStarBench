@@ -6,6 +6,24 @@ metadata:
    annotations:
        "helm.sh/hook": "post-install"
        {{- /*
+         ORDERING: hold the hook container until its sidecar is serving.
+
+         These hooks pip-install their deps at runtime. istio-init has already
+         installed the iptables REDIRECT by the time the app container starts,
+         so if Envoy is not listening yet every outbound connection fails with
+         "[Errno 101] Network is unreachable" -- pip burns its 5 retries in
+         ~9s and the container exits 1. restartPolicy is Never, so that single
+         transient failure fails the whole `helm install` with
+         "failed post-install: timed out waiting for the condition".
+
+         Observed 2026-08-27: the same hook succeeded on one Mazu run and
+         failed on the next. It is a RACE, not a deterministic break, and Mazu
+         loses it far more often than Istio because its sidecar must complete
+         RBE registration and attestation with the Key Curator before it
+         serves -- which takes much longer than plain Envoy startup.
+       */}}
+       proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+       {{- /*
          Same reasoning as the mongodb hook: it talks to redis through the
          mesh under STRICT mTLS, so it needs the Mazu sidecar annotations or
          its sidecar never becomes Ready and the hook blocks helm forever.
@@ -18,7 +36,19 @@ spec:
   - name: post-install-container
     image: python
     imagePullPolicy: Always
-    command: ['sh', '-c', 'python -m pip install requests redis && python /tmp/redis_readiness_check.py']  
+    # Retry pip rather than trusting a single attempt: restartPolicy is Never,
+    # so one transient DNS/network blip here fails the entire helm install.
+    command:
+    - sh
+    - -c
+    - |
+      for i in $(seq 1 30); do
+        python -m pip install --quiet requests redis && break
+        echo "pip attempt $i failed; retrying in 10s"
+        sleep 10
+      done
+      python -c 'import redis, requests' || { echo "FATAL: deps unavailable after retries"; exit 1; }
+      python /tmp/redis_readiness_check.py
     volumeMounts:
       - name: redis-readiness-script
         mountPath: /tmp       

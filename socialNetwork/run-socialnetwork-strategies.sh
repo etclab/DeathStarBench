@@ -18,7 +18,7 @@
 #
 # Environment overrides:
 #   STRATEGIES    - strategies to sweep (default: "st5-AttUpd istio")
-#   SUBSTRATE     - all-correct | baseline   (default: all-correct)
+#   SUBSTRATE     - all-correct | all | baseline   (default: all-correct)
 #   RPS_VALUES    - wrk2 target rates (default: "100 200 400 600 800 1000 1200 1400")
 #   DURATION      - seconds per RPS step (default: 120)
 #   THREADS/CONNS - wrk2 -t / -c (default: 16 / 128)
@@ -153,17 +153,26 @@ SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMo
 # Mirrors the "all-correct" rung of run-socialnetwork-scale.sh exactly.
 SUBSTRATE_FILES=()
 SUBSTRATE_SETS=""
+warn_redis_substrate=0
 case "$SUBSTRATE" in
     all-correct)
         SUBSTRATE_FILES=(sn-images-legacy sn-memcached-cluster sn-mongodb-sharded)
         SUBSTRATE_SETS="mcrouter.statefulset.replicas=3,mcrouter.memcached.replicaCount=6,mongodb-sharded.mongos.replicaCount=3,mongodb-sharded.shards=3,mongodb-sharded.shardsvr.dataNode.replicaCount=2"
+        ;;
+    all)
+        # Everything clustered, including redis. SEMANTICALLY BROKEN -- see the
+        # substrate note in the header. Mirrors the "all" rung of
+        # run-socialnetwork-scale.sh exactly.
+        SUBSTRATE_FILES=(sn-images-legacy sn-memcached-cluster sn-mongodb-sharded sn-redis-cluster)
+        SUBSTRATE_SETS="mcrouter.statefulset.replicas=3,mcrouter.memcached.replicaCount=6,mongodb-sharded.mongos.replicaCount=3,mongodb-sharded.shards=3,mongodb-sharded.shardsvr.dataNode.replicaCount=2,redis-cluster.cluster.nodes=6,redis-cluster.cluster.replicas=1"
+        warn_redis_substrate=1
         ;;
     baseline)
         SUBSTRATE_FILES=()
         SUBSTRATE_SETS=""
         ;;
     *)
-        echo "ERROR: unknown SUBSTRATE '$SUBSTRATE' (expected all-correct or baseline)"; exit 1 ;;
+        echo "ERROR: unknown SUBSTRATE '$SUBSTRATE' (expected all-correct, all, or baseline)"; exit 1 ;;
 esac
 
 # Borrow the two helpers from setup_social_network.sh without running the rest
@@ -198,6 +207,21 @@ echo "Substrate:  $SUBSTRATE"
 echo "Workload:   $WORKLOAD @ ${RPS_VALUES[*]} RPS x ${DURATION}s (-t $THREADS -c $CONNS)"
 echo "Gateway:    $GW_REPLICAS replicas per arm"
 echo "Results:    $RESULTS_ROOT"
+
+# SUBSTRATE=all puts redis in cluster mode, which merges the home and user
+# timelines onto one keyspace (see the substrate note in the header). The run
+# is still a valid INFRASTRUCTURE measurement, but the application semantics
+# are wrong and check_timelines() will report COLLIDED. Say so up front rather
+# than leaving it to be discovered in the overlap column.
+if [[ "$warn_redis_substrate" == "1" ]]; then
+    warn "SUBSTRATE=all runs redis in CLUSTER mode."
+    warn "  HomeTimelineService and UserTimelineService both key on a bare user id"
+    warn "  and share one redis-cluster service, so the two timelines MERGE."
+    warn "  Expect check_timelines to report VERDICT=COLLIDED with ~100% overlap."
+    warn "  Throughput numbers remain meaningful as an infrastructure measurement;"
+    warn "  the application semantics do NOT. Use SUBSTRATE=all-correct for a"
+    warn "  semantically valid run."
+fi
 
 WRK_BIN="${SCRIPT_DIR}/../wrk2/wrk"
 [[ -x "$WRK_BIN" ]] || "$SCRIPT_DIR/setup_social_network.sh" build-wrk2
@@ -361,6 +385,11 @@ to_ms() {
     case "$1" in
         *us) echo "scale=4; ${1%us}/1000" | bc ;;
         *ms) echo "${1%ms}" ;;
+        # wrk2 switches to MINUTES past ~60s ("0.95m"). Without this case the
+        # value falls through to the catch-all and is written verbatim into a
+        # millisecond column, where it parses as 0.95 -- 60000x too small, and
+        # sorts as the BEST latency in the table when it is in fact the worst.
+        *m)  echo "scale=4; ${1%m}*60000" | bc ;;
         *s)  echo "scale=4; ${1%s}*1000" | bc ;;
         *)   echo "$1" ;;
     esac

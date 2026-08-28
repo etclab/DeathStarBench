@@ -42,6 +42,88 @@ spec:
       {{- if .Values.nodeName}}
       nodeName: {{ .Values.nodeName }}
       {{ end }}
+      {{- /*
+        Gate startup on Redis Cluster formation.
+
+        WHY: with global.redis.cluster.enabled, the services that construct a
+        redis-plus-plus RedisCluster client do so EAGERLY at startup. If the
+        cluster has not finished forming, CLUSTER SLOTS comes back empty and
+        the client throws:
+
+            terminate called after throwing an instance of 'sw::redis::Error'
+              what():  Empty slots
+
+        which aborts the process (exit 139). Observed on 2026-08-27: all four
+        home-timeline-service pods restarted 4x each before the cluster came
+        up. It self-heals, but it burns install time and CrashLoopBackOff is
+        exponential, so a slow cluster formation can stall wait_ready.
+
+        WHY POLL THE K8S API AND NOT REDIS: mtls.yaml applies a mesh-wide
+        STRICT PeerAuthentication. istio-init is APPENDED after user init
+        containers, so this container runs with no sidecar on an unmodified
+        network path -- it therefore cannot complete an mTLS handshake with
+        the redis-cluster pods and cannot speak Redis at all. The Kubernetes
+        API server is not in the mesh, so it IS reachable, and
+        redis-cluster-readiness-hook reaching Succeeded is the authoritative
+        "every node reports cluster_state: ok" signal (see
+        templates/hooks/redis-cluster/).
+
+        NOTE: this is a LIST with a fieldSelector, not a GET on the named pod.
+        scratch/yaml/mcrouter-role.yaml grants the default ServiceAccount
+        pods:["list"] only -- `kubectl auth can-i get pods` returns "no" -- so
+        a GET would 403, parse no phase, and silently burn the whole deadline
+        before starting anyway. Do not "simplify" this back to a GET without
+        also adding "get" to that Role.
+
+        DO NOT ADD `helm --wait`: without it Helm applies the manifests and
+        then runs post-install hooks, so the hook makes progress while these
+        pods wait -- no deadlock. With --wait, Helm would block on these pods
+        BEFORE running the hook they are waiting for, and the install would
+        hang until the timeout.
+
+        Falls through with a warning after the deadline rather than failing,
+        so the worst case is the old crash-and-restart behaviour, not a
+        permanently stuck pod.
+      */}}
+      {{- if and .Values.global.redis.cluster.enabled .Values.waitForRedisCluster }}
+      initContainers:
+      - name: wait-for-redis-cluster
+        image: curlimages/curl:8.11.0
+        command:
+        - sh
+        - -c
+        - |
+          set -u
+          API=https://kubernetes.default.svc
+          SA=/var/run/secrets/kubernetes.io/serviceaccount
+          NS=$(cat $SA/namespace)
+          HOOK=redis-cluster-readiness-hook
+          DEADLINE=$(( $(date +%s) + {{ .Values.global.redisClusterWaitSeconds | default 900 }} ))
+          echo "waiting for $HOOK to reach Succeeded in ns/$NS"
+          while true; do
+            PHASE=$(curl -sS --cacert $SA/ca.crt \
+              -H "Authorization: Bearer $(cat $SA/token)" \
+              "$API/api/v1/namespaces/$NS/pods?fieldSelector=metadata.name=$HOOK" 2>/dev/null \
+              | tr -d ' \n' | grep -o '"phase":"[A-Za-z]*"' | head -1 | cut -d'"' -f4)
+            if [ "${PHASE:-}" = "Succeeded" ]; then
+              echo "redis cluster ready ($HOOK=Succeeded)"; exit 0
+            fi
+            if [ "$(date +%s)" -ge "$DEADLINE" ]; then
+              echo "WARNING: timed out waiting for $HOOK (last phase='${PHASE:-<absent>}')"
+              echo "WARNING: starting anyway -- the app may crash-loop until the cluster forms"
+              exit 0
+            fi
+            echo "  $HOOK phase='${PHASE:-<absent>}', retrying"
+            sleep 5
+          done
+        resources:
+          requests:
+            cpu: "50m"
+            memory: 64Mi
+          limits:
+            cpu: "200m"
+            memory: 128Mi
+      {{- end }}
       containers:
       {{- with .Values.container }}
       - name: "{{ .name }}"

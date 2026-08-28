@@ -22,16 +22,16 @@ request = function()
 end
 
 -- remove this to disable response logging
-response = function(status, headers, body)
-    -- Log the status code
-    io.stderr:write("Status: " .. status .. "\n")
+-- response = function(status, headers, body)
+--     -- Log the status code
+--     io.stderr:write("Status: " .. status .. "\n")
 
-    -- Log specific headers (e.g., Content-Type)
-    if headers["Content-Type"] then
-        io.stderr:write("Content-Type: " .. headers["Content-Type"] .. "\n")
-    end
+--     -- Log specific headers (e.g., Content-Type)
+--     if headers["Content-Type"] then
+--         io.stderr:write("Content-Type: " .. headers["Content-Type"] .. "\n")
+--     end
 
-    -- Log the response body (be cautious with large bodies)
-    -- You might want to truncate or only log if specific conditions are met
-    io.stderr:write("Body: " .. body .. "\n")
-end
+--     -- Log the response body (be cautious with large bodies)
+--     -- You might want to truncate or only log if specific conditions are met
+--     io.stderr:write("Body: " .. body .. "\n")
+-- end

@@ -48,8 +48,46 @@ global:
         password: "password"
         port: 27017
 
+
+# ---------------------------------------------------------------------------
+# SERVICE ACCOUNT TOKEN: MUST BE MOUNTED, OR THE MAZU ARMS HANG.
+#
+# mongodb-sharded 9.0.0 ships automountServiceAccountToken: false on every
+# pod (configsvr, mongos, shardsvr.dataNode). That strips
+# /var/run/secrets/kubernetes.io/serviceaccount from EVERY container in the
+# pod -- including the injected istio-proxy.
+#
+# Plain Istio does not care: it authenticates with its own projected
+# `istio-token` volume, which is still mounted. Mazu does care -- its
+# ext-authz filter performs a Kubernetes TokenReview and needs the real
+# ServiceAccount token. Without it the sidecar comes up Ready and logs:
+#
+#   warn   failed to fetch token from file: open
+#          /var/run/secrets/kubernetes.io/serviceaccount/token: no such file
+#   error  ext-authz  failed to get in-cluster config for TokenReview: ...
+#
+# and then silently fails the data path. Observed 2026-08-27: TCP connect to
+# mongodb-sharded-configsvr-0:27017 SUCCEEDS, the MongoDB wire handshake then
+# hangs, mongos logs `MongoServerSelectionError: read ECONNRESET` until
+# "Node ... did not become available" and CrashLoopBackOffs (10 restarts).
+# setup-collection-sharding-hook then retries mongos forever and helm dies
+# with `failed post-install: timed out waiting for the condition`.
+#
+# The symptom points at the hook and at mTLS; the cause is this flag. Note
+# the mcrouter/memcached subcharts leave it unset (i.e. true), which is why
+# ONLY the mongodb tier broke.
+#
+# Set here rather than in sn-mazu-annotations*.yaml on purpose: both arms
+# then get an identical pod spec and only Mazu actually consumes the token,
+# so the Istio-vs-Mazu comparison is not confounded by a config difference.
+# ---------------------------------------------------------------------------
+
 mongodb-sharded:
   fullnameOverride: mongodb-sharded
+  automountServiceAccountToken: true
+  common:
+    serviceAccount:
+      automountServiceAccountToken: true
   auth:
     rootPassword: "password"
     replicaSetKey: "password"
@@ -59,6 +97,9 @@ mongodb-sharded:
   shardsvr:
     dataNode:
       replicaCount: 2
+      automountServiceAccountToken: true
+      serviceAccount:
+        automountServiceAccountToken: true
       resources:
         requests:
           cpu: "1"
@@ -71,6 +112,9 @@ mongodb-sharded:
 
   configsvr:
     replicaCount: 1
+    automountServiceAccountToken: true
+    serviceAccount:
+      automountServiceAccountToken: true
     persistence:
       enabled: false
     resources:
@@ -83,6 +127,9 @@ mongodb-sharded:
 
   mongos:
     replicaCount: 3
+    automountServiceAccountToken: true
+    serviceAccount:
+      automountServiceAccountToken: true
     resources:
       requests:
         cpu: "1"

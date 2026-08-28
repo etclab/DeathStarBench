@@ -6,6 +6,24 @@ metadata:
    annotations:
        "helm.sh/hook": "post-install"
        {{- /*
+         ORDERING: hold the hook container until its sidecar is serving.
+
+         These hooks pip-install their deps at runtime. istio-init has already
+         installed the iptables REDIRECT by the time the app container starts,
+         so if Envoy is not listening yet every outbound connection fails with
+         "[Errno 101] Network is unreachable" -- pip burns its 5 retries in
+         ~9s and the container exits 1. restartPolicy is Never, so that single
+         transient failure fails the whole `helm install` with
+         "failed post-install: timed out waiting for the condition".
+
+         Observed 2026-08-27: the same hook succeeded on one Mazu run and
+         failed on the next. It is a RACE, not a deterministic break, and Mazu
+         loses it far more often than Istio because its sidecar must complete
+         RBE registration and attestation with the Key Curator before it
+         serves -- which takes much longer than plain Envoy startup.
+       */}}
+       proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+       {{- /*
          This hook runs INSIDE the mesh on purpose: mtls.yaml sets a mesh-wide
          STRICT PeerAuthentication, so a hook with sidecar.istio.io/inject=false
          (as the mcrouter hook uses -- that one only talks to the API server)
@@ -24,7 +42,19 @@ spec:
   - name: post-install-container
     image: python
     imagePullPolicy: Always
-    command: ['sh', '-c', 'python -m pip install pymongo requests && python /tmp/init_social_network.py']  
+    # Retry pip rather than trusting a single attempt: restartPolicy is Never,
+    # so one transient DNS/network blip here fails the entire helm install.
+    command:
+    - sh
+    - -c
+    - |
+      for i in $(seq 1 30); do
+        python -m pip install --quiet pymongo requests && break
+        echo "pip attempt $i failed; retrying in 10s"
+        sleep 10
+      done
+      python -c 'import pymongo, requests' || { echo "FATAL: deps unavailable after retries"; exit 1; }
+      python /tmp/init_social_network.py
     volumeMounts:
       - name: mongo-init-script
         mountPath: /tmp

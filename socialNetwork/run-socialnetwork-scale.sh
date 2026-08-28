@@ -410,6 +410,11 @@ run_config() {
             case "$1" in
                 *us) echo "scale=4; ${1%us}/1000" | bc ;;
                 *ms) echo "${1%ms}" ;;
+                # wrk2 switches to MINUTES past ~60s ("0.95m"). Without this case the
+                # value falls through to the catch-all and is written verbatim into a
+                # millisecond column, where it parses as 0.95 -- 60000x too small, and
+                # sorts as the BEST latency in the table when it is in fact the worst.
+                *m)  echo "scale=4; ${1%m}*60000" | bc ;;
                 *s)  echo "scale=4; ${1%s}*1000" | bc ;;
                 *)   echo "$1" ;;
             esac

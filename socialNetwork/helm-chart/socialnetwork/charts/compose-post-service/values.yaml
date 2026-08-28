@@ -19,3 +19,9 @@ configMaps:
   - name: service-config.json
     mountPath: /social-network-microservices/config/service-config.json
     value: service-config
+
+# Construct a redis-plus-plus RedisCluster client eagerly at startup, so this
+# service aborts with `sw::redis::Error: Empty slots` if the cluster has not
+# formed yet. Makes _baseDeployment.tpl inject the wait-for-redis-cluster
+# initContainer; only has an effect when global.redis.cluster.enabled is true.
+waitForRedisCluster: true
