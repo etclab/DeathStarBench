@@ -31,7 +31,23 @@
 #                   fleet (steady-state latency comparison).
 #                   Use a monotonically increasing RPS_VALUES with this, and a
 #                   longer DURATION (240s) so each step converges.
+#   SETTLE_MIN     - HPA=1 only: minimum seconds after the HPAs are applied
+#                   before the fleet is allowed to count as settled
+#                   (default 420). Covers HPA reaction time plus the
+#                   scaleDown stabilization window. See the note at that
+#                   wait loop for why a bare at-floor check is not enough.
+#   SETTLE_TIMEOUT - HPA=1 only: max seconds to wait for the fleet to reach
+#                   the HPA floor before starting the sweep anyway with a
+#                   warning (default 1200; raised if <= SETTLE_MIN).
 #   GW_REPLICAS   - ingress gateway fleet size (default: 10)
+#   ISTIOD_REPLICAS / ISTIOD_CPU / ISTIOD_MEM
+#                 - istiod sizing forced onto the istio arm so it matches what
+#                   the mazu operator overlays give istiod
+#                   (default: 1 / 2000m / 2Gi)
+#   ISTIOD_NODE   - hostname the istio arm's istiod is pinned to, so it runs on
+#                   the same node as the mazu arms' istiod (default: node-1,
+#                   the only control-plane node advertising the TPM). Must be a
+#                   Ready node; checked at startup.
 #   RECREATE_TPM  - auto (default) | 1 | 0. auto recreates swtpm before every
 #                   TPM strategy arm and skips it for arms that never touch the
 #                   TPM (istio, st4-AudUpd). 1 forces it, 0 disables it.
@@ -67,12 +83,44 @@
 #     persistent volume, so anything that rolls a pod wipes the dataset and
 #     the benchmark then measures empty timelines while returning HTTP 200.
 #
-#   * GATEWAY FLEET MUST MATCH ACROSS ARMS. The mazu arms get a fixed fleet of
-#     GW_REPLICAS from scratch/yaml/istio-operator*.yaml. `install-istio`
-#     applies the stock default profile, whose gateway HPA is 1..5 with no node
-#     affinity -- so the istio arm is patched to match. Without this the istio
-#     baseline saturates its gateway and the comparison measures gateway
-#     starvation rather than the data plane. Same reasoning as bench1.5b.
+#   * MESH SIZING MUST MATCH ACROSS ARMS, on BOTH the gateway and istiod. The
+#     mazu arms get theirs from scratch/yaml/istio-operator*.yaml;
+#     `install-istio` applies the stock default profile, so the istio arm is
+#     patched to match. Two separate knobs:
+#
+#       gateway  overlay pins 10 replicas with anti-control-plane affinity;
+#                stock is an HPA of 1..5 with no affinity. Unpatched, the istio
+#                baseline saturates its gateway and the comparison measures
+#                gateway starvation rather than the data plane. Same reasoning
+#                as bench1.5b.
+#
+#       istiod   overlay pins ONE replica (hpaSpec.maxReplicas: 1) with a 2000m
+#                request, on a control-plane node; stock is an HPA of 1..5 at
+#                80% CPU with a 500m request and no nodeSelector at all.
+#                Unpatched, the istio arm can grow its control plane by 4
+#                replicas, trips its HPA at 80% of 500m instead of 80% of
+#                2000m, and lands istiod on a worker where it competes with the
+#                application for CPU. The replica ceiling bites hardest under
+#                HPA=1, where replica churn is itself an xDS-push workload --
+#                istio would scale out of the pressure mazu is structurally
+#                forbidden from escaping.
+#
+#     THE ISTIOD PATCH PINS BY HOSTNAME, NOT BY THE CONTROL-PLANE LABEL. The
+#     two control-plane nodes are not interchangeable: node-0 carries the
+#     NoSchedule control-plane taint, node-1 does not, so node-1 also runs
+#     ordinary application workload while node-0 stays essentially idle. A
+#     label selector picks "a control-plane node" and the istio arm was
+#     observed landing on node-0 -- an idle node -- while the mazu TPM arms
+#     have no choice but node-1 (the only one of the two advertising
+#     tpm.boxboat.io/tpmrm). istiod CPU would then be compared across two
+#     different neighbourhoods. ISTIOD_NODE (default node-1) closes that gap.
+#     RES_DIR/istiod-node.txt records where it actually landed per arm --
+#     check it before reading anything into an istiod CPU difference.
+#
+#     STILL ASYMMETRIC: the NON-TPM mazu arms (st4-AudUpd) install from
+#     scratch/yaml/istio-operator.yaml, which selects on the control-plane
+#     label and requests no TPM -- so their istiod can still land on either
+#     node. Not in the default STRATEGIES set. If you add it, pin it there too.
 #
 #   * SWTPM STATE MUST BE RECREATED BEFORE EVERY TPM ARM. It is host state
 #     (/tmp/myvtpm2 + /dev/tpmrm0 on the node), so nothing inside Kubernetes
@@ -129,9 +177,41 @@ PROM_PORT=${PROM_PORT:-9091}
 # default -- the fixed-fleet mode is the steady-state latency comparison.
 HPA="${HPA:-0}"
 
+# How long to wait, under HPA=1, for the seed-inflated fleet to shrink back to
+# the HPA floor before starting the sweep. Must comfortably exceed the HPA's
+# scaleDown stabilization window (kubernetes default 300s, and sn-hpa.yaml does
+# not override it) plus the time the surplus takes to drain.
+# SETTLE_MIN is the floor on that wait, not just a timeout: the fleet is still
+# AT the HPA floor when the HPAs are applied (seeding runs before they exist),
+# so an at-floor check is meaningless until the HPAs have had time to scale up
+# AND to come back down. It must exceed the scaleDown stabilization window
+# (kubernetes default 300s) plus the HPA's reaction time (~50s observed).
+SETTLE_MIN=${SETTLE_MIN:-420}
+SETTLE_TIMEOUT=${SETTLE_TIMEOUT:-1200}
+# A timeout shorter than the minimum dwell would make the wait unsatisfiable.
+if [[ "$SETTLE_TIMEOUT" -le "$SETTLE_MIN" ]]; then
+    SETTLE_TIMEOUT=$(( SETTLE_MIN + 300 ))
+fi
+
 # Keep in sync with hpaSpec min/maxReplicas in scratch/yaml/istio-operator.yaml
 # and scratch/yaml/istio-operator-tpm.yaml (both currently 10).
 GW_REPLICAS=${GW_REPLICAS:-10}
+
+# istiod sizing, applied to the ISTIO arm to match what the Mazu operator
+# overlays give istiod. Keep in sync with components.pilot.k8s in
+# scratch/yaml/istio-operator.yaml and istio-operator-tpm.yaml.
+ISTIOD_REPLICAS=${ISTIOD_REPLICAS:-1}
+ISTIOD_CPU="${ISTIOD_CPU:-2000m}"
+ISTIOD_MEM="${ISTIOD_MEM:-2Gi}"
+
+# The node the istio arm's istiod is pinned to, BY HOSTNAME. A control-plane
+# label is not specific enough: node-0 and node-1 are both control-plane but
+# are not equivalent neighbourhoods (node-0 carries the NoSchedule taint and
+# stays idle, node-1 does not and runs ordinary workload). The mazu TPM arms
+# have no choice -- only node-1 of the two advertises tpm.boxboat.io/tpmrm --
+# so the istio arm has to be pinned to the same host or the two istiods are
+# measured under different neighbours. See the placement note in the header.
+ISTIOD_NODE="${ISTIOD_NODE:-node-1}"
 
 RESULTS_ROOT="${RESULTS_DIR:-${SCRIPT_DIR}/results/sn-strategies-$(date +%m-%d-%y_%H%M%S)}"
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
@@ -199,14 +279,30 @@ mkdir -p "$RESULTS_ROOT"
 exec > >(tee -a "$RESULTS_ROOT/run.log") 2>&1
 
 SUMMARY="$RESULTS_ROOT/summary.csv"
-echo "strategy,rps_target,rps_delivered,p50_ms,p99_ms,non_2xx,timeline_overlap_pct,pods" > "$SUMMARY"
+echo "strategy,rps_target,rps_delivered,p50_ms,p99_ms,non_2xx,timeouts,timeline_overlap_pct,pods" > "$SUMMARY"
 
 mazu_echo "=== SocialNetwork: strategy comparison ==="
 echo "Strategies: ${STRATEGIES[*]}"
 echo "Substrate:  $SUBSTRATE"
 echo "Workload:   $WORKLOAD @ ${RPS_VALUES[*]} RPS x ${DURATION}s (-t $THREADS -c $CONNS)"
 echo "Gateway:    $GW_REPLICAS replicas per arm"
+echo "istiod:     $ISTIOD_REPLICAS replica(s), requests cpu=$ISTIOD_CPU memory=$ISTIOD_MEM (both arms)"
+echo "            pinned to $ISTIOD_NODE (istio arm; the TPM arms land there by device)"
 echo "Results:    $RESULTS_ROOT"
+
+# Fail here rather than 600s into the arm. A hostname that is wrong, or a node
+# that is NotReady, leaves istiod Pending forever -- which surfaces only as the
+# gateway readiness timeout, with every gateway pod stuck at 0/1 because no
+# sidecar can register. That looks exactly like the stale-TPM failure mode, so
+# it is worth ruling out before a multi-hour run starts.
+ISTIOD_NODE_READY=$(kubectl get node "$ISTIOD_NODE" \
+    -o jsonpath='{range .status.conditions[?(@.type=="Ready")]}{.status}{end}' 2>/dev/null)
+if [[ "$ISTIOD_NODE_READY" != "True" ]]; then
+    echo "ERROR: ISTIOD_NODE=$ISTIOD_NODE is not a Ready node (Ready=${ISTIOD_NODE_READY:-<missing>})."
+    echo "       istiod would stay Pending and every gateway pod would sit at 0/1."
+    kubectl get nodes -l node-role.kubernetes.io/control-plane 2>&1 | sed 's/^/       /'
+    exit 1
+fi
 
 # SUBSTRATE=all puts redis in cluster mode, which merges the home and user
 # timelines onto one keyspace (see the substrate note in the header). The run
@@ -439,7 +535,7 @@ for STRAT in "${STRATEGIES[@]}"; do
     if [[ "$NEEDS_TPM" == "1" ]]; then
         if ! recreate_tpms; then
             warn "swtpm recreation FAILED for $STRAT -- skipping this arm"
-            echo "$STRAT,TPM_RECREATE_FAILED,,,,,," >> "$SUMMARY"
+            echo "$STRAT,TPM_RECREATE_FAILED,,,,,,," >> "$SUMMARY"
             continue
         fi
     else
@@ -464,7 +560,7 @@ for STRAT in "${STRATEGIES[@]}"; do
         # No point installing a mesh whose sidecars would block on a missing
         # configMap for the full istioctl timeout.
         warn "mazu configMaps FAILED for $STRAT -- skipping this arm"
-        echo "$STRAT,CONFIGMAP_FAILED,,,,,," >> "$SUMMARY"; continue
+        echo "$STRAT,CONFIGMAP_FAILED,,,,,,," >> "$SUMMARY"; continue
     fi
 
     if [[ "$STRAT" == "istio" ]]; then
@@ -486,7 +582,69 @@ for STRAT in "${STRATEGIES[@]}"; do
             }' || MESH_OK=0
             kubectl -n istio-system patch hpa istio-ingressgateway --type=merge \
                 -p "{\"spec\": {\"minReplicas\": ${GW_REPLICAS}, \"maxReplicas\": ${GW_REPLICAS}}}" 2>/dev/null || true
+
+            # Match the mazu arms' istiod sizing -- same reasoning as the
+            # gateway fleet above, applied to the control plane.
+            #
+            # The stock default profile gives istiod an HPA of 1..5 at 80% CPU
+            # and a 500m request; the operator overlays pin it to a single
+            # replica with a 2000m request. Left alone, the istio arm can add
+            # up to four more istiod replicas -- and trips its HPA at 80% of
+            # 500m rather than 80% of 2000m, so it is ~4x more scale-happy per
+            # absolute core. That matters most in HPA=1 mode, where replica
+            # churn IS an xDS-push workload: the istio arm would grow its
+            # control plane during the one experiment built to stress it while
+            # mazu, capped at maxReplicas 1 by the overlay, structurally cannot.
+            # The comparison would then measure control-plane headroom rather
+            # than the data plane.
+            #
+            # Placement is mirrored too: stock istiod has no nodeSelector and
+            # lands on a worker, where it competes with application pods for
+            # CPU, while the mazu arms' istiod sits on a control-plane node.
+            # Pinned BY HOSTNAME rather than by the control-plane label,
+            # because the two control-plane nodes are not interchangeable --
+            # see ISTIOD_NODE and the placement note in the header.
+            kubectl -n istio-system patch hpa istiod --type=merge \
+                -p "{\"spec\": {\"minReplicas\": ${ISTIOD_REPLICAS}, \"maxReplicas\": ${ISTIOD_REPLICAS}}}" 2>/dev/null || true
+
+            # One patch for sizing AND placement, so istiod rolls once.
+            #
+            # --type=strategic, NOT merge: a JSON merge patch (RFC 7386) has no
+            # notion of a list merge key, so `--type=merge` would REPLACE the
+            # whole containers array with this one-field entry and the API
+            # server rejects it with `containers[0].image: Required value`.
+            # Strategic merge patches that list by name. (The gateway patch
+            # above can use merge because affinity is a map, not a list.)
+            #
+            # `tolerations` HAS NO MERGE KEY -- it is an atomic list even under
+            # a strategic patch, so whatever is written here REPLACES what the
+            # deployment had. Stock istiod ships with cni.istio.io/not-ready,
+            # which lets it start before istio-cni is ready; it is restated
+            # below because omitting it would silently drop it.
+            #
+            # The control-plane toleration is kept even though the default
+            # ISTIOD_NODE (node-1) is untainted: it costs nothing there, and
+            # without it pointing ISTIOD_NODE at node-0 would leave istiod
+            # Pending forever against the NoSchedule taint.
+            ISTIOD_PATCH=$(cat <<EOF
+{"spec": {"template": {"spec": {
+  "containers": [{"name": "discovery", "resources": {"requests":
+      {"cpu": "${ISTIOD_CPU}", "memory": "${ISTIOD_MEM}"}}}],
+  "nodeSelector": {"kubernetes.io/hostname": "${ISTIOD_NODE}"},
+  "tolerations": [
+    {"key": "cni.istio.io/not-ready", "operator": "Exists"},
+    {"key": "node-role.kubernetes.io/control-plane", "operator": "Exists", "effect": "NoSchedule"}
+  ]
+}}}}
+EOF
+            )
+            kubectl -n istio-system patch deployment istiod --type=strategic -p "$ISTIOD_PATCH" \
+                || warn "could not patch istiod sizing/placement -- arm will run with default-profile values"
+
             kubectl -n istio-system rollout status deployment/istio-ingressgateway --timeout=300s || true
+            # The resource patch rolls istiod; wait for it before the app
+            # install, so no pod is injected against a terminating istiod.
+            kubectl -n istio-system rollout status deployment/istiod --timeout=300s || true
         fi
     else
         if [[ "$STRAT" == "st5-AttUpd" ]]; then
@@ -500,7 +658,7 @@ for STRAT in "${STRATEGIES[@]}"; do
     if [[ "$MESH_OK" != "1" ]]; then
         warn "mesh install FAILED for $STRAT -- skipping this arm"
         kubectl get pods -n istio-system -o wide > "$RES_DIR/istio-pods.txt" 2>/dev/null || true
-        echo "$STRAT,MESH_INSTALL_FAILED,,,,,," >> "$SUMMARY"
+        echo "$STRAT,MESH_INSTALL_FAILED,,,,,,," >> "$SUMMARY"
         continue
     fi
 
@@ -523,10 +681,21 @@ for STRAT in "${STRATEGIES[@]}"; do
         kubectl get pods -n istio-system -o wide > "$RES_DIR/istio-pods.txt" 2>/dev/null || true
         kubectl logs -n istio-system -l app=istiod --tail=100 > "$RES_DIR/istiod.log" 2>/dev/null || true
         kubectl logs -n istio-system -l app=istiod --previous --tail=100 > "$RES_DIR/istiod-previous.log" 2>/dev/null || true
-        echo "$STRAT,GATEWAY_NOT_READY,,,,,," >> "$SUMMARY"
+        echo "$STRAT,GATEWAY_NOT_READY,,,,,,," >> "$SUMMARY"
         continue
     fi
     echo "istio-ingressgateway: ${GW_READY} replicas Ready"
+
+    # Which node istiod actually landed on, and with what sizing. Both arms
+    # should now report ISTIOD_NODE -- the istio arm because it is pinned
+    # there by hostname, the TPM mazu arms because it is the only
+    # control-plane node advertising the TPM. Recorded per arm anyway: if the
+    # two ever diverge, an istiod CPU difference is a neighbourhood
+    # difference, not a mesh difference. See the placement note in the header.
+    kubectl -n istio-system get pods -l app=istiod \
+        -o custom-columns=POD:.metadata.name,NODE:.spec.nodeName,CPU_REQ:'.spec.containers[0].resources.requests.cpu',MEM_REQ:'.spec.containers[0].resources.requests.memory' \
+        > "$RES_DIR/istiod-node.txt" 2>&1 || true
+    cat "$RES_DIR/istiod-node.txt" || true
 
     # ---- Install the application (AFTER the mesh, so every pod gets a sidecar) ----
     kubectl apply -f "$SCRIPT_DIR/kubernetes/istio-gateway.yaml"
@@ -561,11 +730,11 @@ for STRAT in "${STRATEGIES[@]}"; do
     if ! helm upgrade --install "$RELEASE" "$CHART_DIR" -n "$NAMESPACE" \
             "${HELM_ARGS[@]}" --timeout 20m0s > "$RES_DIR/helm.log" 2>&1; then
         warn "helm install FAILED for $STRAT"; tail -30 "$RES_DIR/helm.log"
-        echo "$STRAT,INSTALL_FAILED,,,,,," >> "$SUMMARY"; continue
+        echo "$STRAT,INSTALL_FAILED,,,,,,," >> "$SUMMARY"; continue
     fi
 
     wait_ready 1800 || { kubectl get pods -n "$NAMESPACE" -o wide > "$RES_DIR/pods.txt"; \
-        echo "$STRAT,NOT_READY,,,,,," >> "$SUMMARY"; continue; }
+        echo "$STRAT,NOT_READY,,,,,,," >> "$SUMMARY"; continue; }
 
     kubectl get pods -n "$NAMESPACE" -o wide > "$RES_DIR/pods.txt"
     PODCOUNT=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep -cv 'nfs-subdir' || true)
@@ -582,7 +751,7 @@ for STRAT in "${STRATEGIES[@]}"; do
         sleep 5
     done
     [[ "$CODE" != "200" ]] && { warn "gateway never returned 200 (last: $CODE)"; \
-        echo "$STRAT,NO_FRONTEND,,,,,," >> "$SUMMARY"; continue; }
+        echo "$STRAT,NO_FRONTEND,,,,,,," >> "$SUMMARY"; continue; }
 
     # ---- Seed (always after the last install) ----
     # `set -o pipefail` is on, so a seeding failure (or a `grep` that filters
@@ -597,7 +766,7 @@ for STRAT in "${STRATEGIES[@]}"; do
     grep -Ev '^[0-9]+$' "$RES_DIR/seed.txt" | tail -8 || true
     if [[ "$SEED_OK" != "1" ]]; then
         warn "seeding FAILED for $STRAT -- skipping this arm"
-        echo "$STRAT,SEED_FAILED,,,,,," >> "$SUMMARY"; continue
+        echo "$STRAT,SEED_FAILED,,,,,,," >> "$SUMMARY"; continue
     fi
 
     mazu_echo "Checking timeline correctness..."
@@ -615,6 +784,7 @@ for STRAT in "${STRATEGIES[@]}"; do
     if [[ "$HPA" == "1" ]]; then
         mazu_echo "Enabling HPAs (post-seed, pre-sweep)..."
         kubectl apply -f "${YAML}/sn-hpa.yaml" -n "$NAMESPACE" >/dev/null
+        HPA_APPLIED_AT=$(date +%s)
 
         # An HPA reporting <unknown> never scales, and the run would silently
         # measure a fixed fleet. metrics-server needs a few scrape intervals
@@ -630,8 +800,89 @@ for STRAT in "${STRATEGIES[@]}"; do
 
         # Let the seeding CPU spike decay before the first step, so the opening
         # fleet reflects idle rather than the tail of the seed workload.
-        echo "Letting post-seed CPU settle..."
-        sleep 120
+        #
+        # POLL FOR THE FLOOR -- DO NOT SLEEP A FIXED INTERVAL. sn-hpa.yaml
+        # defines only a scaleUp behavior block, so kubernetes applies its
+        # DEFAULT scaleDown stabilizationWindowSeconds of 300: for five minutes
+        # after the seed inflates the fleet, it physically cannot shrink, no
+        # matter how idle the cluster goes. The 120s sleep this replaces was
+        # structurally incapable of outlasting that window.
+        #
+        # Measured on 2026-09-02 (istio, HPA=1): seeding drove the service tier
+        # from its floor of 13 up to 37 pods. The sweep began 140s later with
+        # the fleet still at 37, and it collapsed to 23 at t=210s INTO the first
+        # RPS step -- a 14-pod scale-down in the middle of a measurement window,
+        # caused by seed decay rather than by benchmark load. That step also
+        # logged 4243 wrk2 timeouts against just 37 at FOUR TIMES the rate,
+        # because connections were being dropped by pods terminating underneath
+        # the load. The first data point of every HPA run was being corrupted.
+        #
+        # So wait until every autoscaled deployment is actually back at its
+        # floor. Timing out here is a warning rather than a skip: a contaminated
+        # first step is still worth collecting as long as it is labelled.
+        # MINIMUM DWELL FIRST, THEN THE FLOOR CHECK -- THE ORDER IS THE WHOLE
+        # POINT. Seeding runs BEFORE the HPAs exist, so the fleet is still
+        # pinned at its 1-replica floor at the moment they are applied. A poll
+        # that only asks "is everything at minReplicas?" therefore answers YES
+        # on its first iteration, breaks instantly, and lets the sweep start
+        # just as the HPAs begin reacting to the residual seed CPU. Measured on
+        # 2026-09-02: that naive version logged zero above-floor samples, then
+        # hpa-initial.txt showed 3 replicas at 50s of age and the sweep opened
+        # on 54 pods -- indistinguishable from the 55 of the unfixed run, and a
+        # SHORTER effective settle than the fixed sleep it replaced. The fleet
+        # had not returned to the floor; it had not yet left it.
+        #
+        # So refuse to accept "at floor" until SETTLE_MIN has elapsed since the
+        # HPAs were applied. That has to cover the HPA's reaction time (~50s
+        # observed) plus the full scaleDown stabilization window (kubernetes
+        # default 300s, which sn-hpa.yaml does not override), measured from the
+        # last elevated recommendation rather than from the apply.
+        echo "Waiting for the post-seed fleet to settle at the HPA floor..."
+        echo "  minimum dwell ${SETTLE_MIN}s, timeout ${SETTLE_TIMEOUT}s (from HPA apply)"
+        FLOOR_DEADLINE=$(( HPA_APPLIED_AT + SETTLE_TIMEOUT ))
+        FLOOR_EARLIEST=$(( HPA_APPLIED_AT + SETTLE_MIN ))
+        PEAK_ABOVE=0
+        while :; do
+            NOW=$(date +%s)
+            HPA_STATE=$(kubectl get hpa -n "$NAMESPACE" \
+                -o jsonpath='{range .items[*]}{.status.currentReplicas}{" "}{.spec.minReplicas}{"\n"}{end}' 2>/dev/null \
+                | awk 'NF==2')
+            SEEN=$(printf '%s\n' "$HPA_STATE" | grep -c . || true)
+            ABOVE=$(printf '%s\n' "$HPA_STATE" | awk '$1>$2' | wc -l | tr -d ' ')
+            # SEEN is checked as well as ABOVE: a kubectl that returned nothing
+            # (transient API error, or currentReplicas not yet populated on
+            # freshly created HPAs) yields ABOVE=0, which would otherwise read
+            # as "already at floor", break instantly, and silently reintroduce
+            # the very contamination this loop exists to prevent. No data is
+            # not the same as good data -- keep waiting instead.
+            [[ "${ABOVE:-0}" -gt "$PEAK_ABOVE" ]] && PEAK_ABOVE="$ABOVE"
+            if [[ "$NOW" -ge "$FLOOR_EARLIEST" && "${SEEN:-0}" -gt 0 && "${ABOVE:-1}" -eq 0 ]]; then
+                echo "  fleet is at the HPA floor after $(( NOW - HPA_APPLIED_AT ))s (peak above-floor: ${PEAK_ABOVE})"
+                break
+            fi
+            if [[ "$NOW" -ge "$FLOOR_DEADLINE" ]]; then
+                warn "$ABOVE deployment(s) still above the HPA floor after ${SETTLE_TIMEOUT}s"
+                warn "  the first RPS step will measure a fleet that is still shrinking"
+                # jsonpath, not `get hpa --no-headers` + awk: with two metrics
+                # the TARGETS column renders as "32%/70%, 2%/70%" -- one value
+                # containing a SPACE, which shifts every column after it and
+                # makes positional fields point at the wrong things.
+                kubectl get hpa -n "$NAMESPACE" \
+                    -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.currentReplicas}{" "}{.spec.minReplicas}{"\n"}{end}' 2>/dev/null \
+                    | awk 'NF==3 && $2>$3 {print "    " $1 " at " $2 " (floor " $3 ")"}' || true
+                break
+            fi
+            DWELL_LEFT=$(( FLOOR_EARLIEST > NOW ? FLOOR_EARLIEST - NOW : 0 ))
+            echo "  $(date +%T) above-floor=${ABOVE}/${SEEN} dwell_left=${DWELL_LEFT}s"
+            sleep 10
+        done
+
+        # currentReplicas reaching the floor means the SCALE-DOWN DECISION has
+        # landed, not that the surplus pods are gone -- they are still
+        # Terminating, and the 1 Hz poller counts them by label regardless of
+        # phase. Give them a moment to actually drain so pods.csv opens on a
+        # settled fleet.
+        sleep 30
         kubectl get hpa -n "$NAMESPACE" > "$RES_DIR/hpa-initial.txt" 2>&1 || true
         kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null \
             | grep -Ecv "$READY_EXCLUDE" | sed 's/^/  fleet at sweep start: /'
@@ -683,7 +934,11 @@ for STRAT in "${STRATEGIES[@]}"; do
         awk -F, -v s="$BENCH_START" -v e="$BENCH_END" 'NR==1 || ($1>=s && $1<=e)' \
             "$POD_CSV" > "$RES_DIR/pods-${RPS}.csv"
 
-        "$SCRIPT_DIR/collect_metrics.sh" "$RES_DIR" "$DURATION" "$BENCH_START" "$RPS" \
+        # collect_metrics_sn.sh, not collect_metrics.sh: the latter collects
+        # only the istio-proxy sidecar, and sn-hpa.yaml scales on the max of
+        # the sidecar AND the app container -- so the old collector cannot say
+        # which metric drove a scale-up. See that script's header.
+        "$SCRIPT_DIR/collect_metrics_sn.sh" "$RES_DIR" "$DURATION" "$BENCH_START" "$RPS" \
             || warn "Metrics collection failed for RPS=$RPS"
 
         # Fleet size at the END of this step, plus the HPA's own view. The
@@ -700,13 +955,36 @@ for STRAT in "${STRATEGIES[@]}"; do
         P99=$(awk '/ 99\.000%/{print $2}' "$OUT_FILE")
         NON2XX=$(awk '/Non-2xx/{print $NF}' "$OUT_FILE"); [[ -z "$NON2XX" ]] && NON2XX=0
 
+        # TIMED-OUT REQUESTS ARE NOT IN THE LATENCY HISTOGRAM. wrk2 drops any
+        # request that exceeds the socket timeout before it reaches the
+        # histogram, so P50/P99 above describe only the requests that came
+        # BACK. A step can therefore report an excellent p99 while a large
+        # fraction of the offered load never completed, and non_2xx stays ~0
+        # because a timeout is not an HTTP status.
+        #
+        # Measured on 2026-09-02 (istio, HPA=1, 100 RPS): the summary row read
+        # p99=220.03ms / non_2xx=6 -- which looks clean -- while the raw output
+        # carried "timeout 4243" against a histogram of 27724 samples whose max
+        # was 462ms. Roughly one request in seven had exceeded 2s and left no
+        # trace in any recorded column.
+        #
+        # This is load-bearing for the Istio-vs-Mazu comparison specifically: a
+        # mesh that degrades by TIMING OUT rather than by returning errors would
+        # score equal-or-better on every column the summary previously had.
+        #
+        # wrk2 omits the whole "Socket errors" line when there are none, so a
+        # clean step correctly yields 0.
+        TIMEOUTS=$(awk '/Socket errors/{for(i=1;i<=NF;i++) if($i=="timeout") print $(i+1)}' \
+            "$OUT_FILE" | tr -d ',')
+        [[ -z "$TIMEOUTS" ]] && TIMEOUTS=0
+
         # Under HPA the fleet is the dependent variable, so report it per step
         # rather than the constant captured before the sweep.
         STEP_PODS="$PODCOUNT"
         [[ "$HPA" == "1" ]] && STEP_PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null \
             | grep -Ev "$READY_EXCLUDE" | wc -l | tr -d ' ')
 
-        echo "$STRAT,$RPS,${DELIVERED:-},$(to_ms "${P50:-0}"),$(to_ms "${P99:-0}"),$NON2XX,$OVERLAP,$STEP_PODS" >> "$SUMMARY"
+        echo "$STRAT,$RPS,${DELIVERED:-},$(to_ms "${P50:-0}"),$(to_ms "${P99:-0}"),$NON2XX,$TIMEOUTS,$OVERLAP,$STEP_PODS" >> "$SUMMARY"
     done
 
     # ---------------- Phase C: per-strategy teardown ----------------
