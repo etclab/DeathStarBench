@@ -996,6 +996,47 @@ EOF
     mazu_echo "=== $STRAT complete at $(date) ==="
 done
 
+# ===========================================================================
+# Phase D: analysis
+#
+# BEST-EFFORT BY DESIGN. Every raw artifact is already on disk by the time
+# this runs, so a plotting failure must never fail a multi-hour sweep -- each
+# step warns and the next one still runs. Re-run any of them by hand against
+# the run root afterwards.
+#
+# ORDER MATTERS: summarize_sn_pods.py writes the pods-<rps>-sum.csv files that
+# plot_sn_pods.py consumes. plot_sn_pods.py does NOT read the raw
+# pods-<rps>.csv, so running it first produces nothing.
+#
+# All four take the RUN ROOT, not a per-strategy directory, and discover the
+# arms from its subdirectories -- so a sweep in which one arm was skipped
+# still plots the arm that ran, and adding a third strategy needs no change.
+mazu_echo "Generating comparison plots..."
+
+python3 "$SCRIPT_DIR/summarize_sn_pods.py" "$RESULTS_ROOT" \
+    || warn "summarize_sn_pods.py failed -- plot_sn_pods.py will have nothing to read"
+
+#   plot_sn_pods       replica growth: total fleet vs RPS per arm, the per-step
+#                      ramps, and where the extra replicas went per service
+#   plot_sn_latency    p50/p90/p99 vs RPS, PLUS the share of offered load that
+#                      never completed. The two panels are deliberately one
+#                      figure: wrk2 drops timed-out requests before its
+#                      histogram, so a percentile here describes only the
+#                      requests that came back and must not be read alone.
+#   plot_sn_resources  fleet-wide CPU and memory per component (app / proxy /
+#                      istiod / gateway). Per-component because the headline is
+#                      that app CPU is identical across meshes while the proxy
+#                      tier is not -- a single aggregate would bury that.
+for plotter in plot_sn_pods plot_sn_latency plot_sn_resources; do
+    python3 "$SCRIPT_DIR/${plotter}.py" "$RESULTS_ROOT" || warn "${plotter}.py failed"
+done
+
 mazu_echo "=== DONE ==="
 echo "Summary: $SUMMARY"
 column -s, -t < "$SUMMARY"
+echo
+echo "Plots in $RESULTS_ROOT (pdf + png):"
+for f in plot_sn_pod_growth plot_sn_pod_totals plot_sn_pod_final \
+         plot_sn_latency plot_sn_cpu plot_sn_memory; do
+    [[ -f "$RESULTS_ROOT/$f.pdf" ]] && echo "  $f.pdf"
+done
