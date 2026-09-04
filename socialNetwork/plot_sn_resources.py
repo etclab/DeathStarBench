@@ -28,12 +28,15 @@ WHY BY COMPONENT AND NOT ONE AGGREGATE
   kube_apiserver is plotted too, but it is a CLUSTER-WIDE background cost and
   is not attributable to the workload the way the other four groups are.
 
-Produces under <run-dir> (one figure per metric, PDF + PNG of each):
+Produces under <run-dir> (one figure per metric, PDF + PNG + .dat of each):
   - plot_sn_cpu.pdf / .png      fleet-wide CPU (cores), one subplot per
                                 component, grouped bars per RPS step paired by
                                 strategy.
   - plot_sn_memory.pdf / .png   same layout for working-set memory, converted
                                 from bytes and labelled MiB or GiB per panel.
+  - plot_sn_cpu.dat             the plotted numbers, tab-separated, one row per
+    plot_sn_memory.dat          (RPS step, component), with a comment block
+                                naming the source field and every transform.
 
 Where the Mazu/Istio ratio is large it is annotated above the bar pair, since
 that ratio is the headline number.
@@ -326,6 +329,99 @@ def print_table(data, strategies, metric: str) -> None:
             print(row)
 
 
+# ===========================================================================
+# .dat export
+#
+# Written from the same `data` dict the bars are drawn from, so the file is
+# the figure in text form rather than a second derivation that can drift.
+# Unlike the figure, the unit is fixed for the whole file (see below): a panel
+# free to pick MiB or GiB is right for reading one component, wrong for
+# comparing two columns in a text file.
+# ===========================================================================
+
+# Memory is stored in bytes and plotted per-panel in MiB or GiB; the .dat is
+# MiB throughout so every row stays directly comparable.
+DAT_MEM_DIV = float(1024 ** 2)
+
+DAT_DOC = """\
+Data behind plot_sn_{stem}.pdf/.png -- one row per (RPS step, component).
+
+SOURCE     <run-dir>/<strategy>/metrics_<rps>.json, written by
+           collect_metrics_sn.sh: the `totals.{metric}.<component>` block, a
+           Prometheus instant vector holding ONE fleet-wide scalar per
+           component, already averaged over that load step's window.
+TRANSFORM  the scalar is taken as-is{conv}
+           The per-pod `{metric}.<component>` query_range matrices in the same
+           file are deliberately NOT used: under HPA the pod count is a
+           dependent variable that differs between arms and between steps, so
+           a per-pod average flatters whichever arm ran more replicas even
+           though the cluster is paying more. The fleet-wide sum is the only
+           cross-arm-comparable number. (Same reasoning as the "WHY THE TOTALS
+           BLOCK" section of collect_metrics_sn.sh.)
+           ratio = Mazu / Istio, and is N/A unless both arms measured that
+           step and the Istio value is non-zero.
+           A component whose Prometheus query failed at collection time comes
+           back as an empty result and is written N/A -- never as 0.
+UNITS      {units}
+NOTE       kube_apiserver is a CLUSTER-WIDE background cost. It is reported for
+           completeness but, unlike the other four components, is not
+           attributable to this workload.
+LAYOUT     one row per (RPS step, component); one column per strategy, then
+           the ratio. Rows where no arm has a value are omitted.
+"""
+
+
+def write_dat(path: Path, doc: str, header: list, rows: list) -> Path:
+    """Write one tab-separated gnuplot .dat: comment block, header, rows.
+
+    The header line is '#'-prefixed (a gnuplot comment, matching
+    generate_dat.py) so the file plots directly with no skip-row argument.
+    None -> "N/A", keeping a failed query distinct from a measured zero the
+    same way the figure keeps a gap distinct from a zero-height bar.
+    """
+    with path.open("w") as f:
+        for line in doc.strip("\n").splitlines():
+            f.write(("# " + line).rstrip() + "\n")
+        f.write("# " + "\t".join(str(h) for h in header) + "\n")
+        for row in rows:
+            f.write("\t".join("N/A" if v is None else str(v) for v in row) + "\n")
+    return path
+
+
+def write_metric_dat(data, strategies, metric: str, out: Path) -> Path:
+    strategies = order_strategies(strategies)
+    if metric == "cpu":
+        div, digits = 1.0, 6
+        units, conv = "CPU in cores.", "."
+    else:
+        div, digits = DAT_MEM_DIV, 2
+        units = "memory (working set) in MiB."
+        conv = (", then converted from bytes to MiB\n"
+                "           (/1024^2). The figure picks MiB or GiB per panel;\n"
+                "           this file is MiB throughout, so every row stays\n"
+                "           directly comparable.")
+
+    header = ["rps", "component"] + [display_name(s) for s in strategies] \
+        + ["ratio_mazu_over_istio"]
+    rows = []
+    for rps in sorted(data, key=rps_key):
+        for comp in COMPONENTS:
+            vals = [data[rps].get(s, {}).get(metric, {}).get(comp)
+                    for s in strategies]
+            if all(v is None for v in vals):
+                continue
+            base = data[rps].get("istio", {}).get(metric, {}).get(comp)
+            mazu = data[rps].get("st5-AttUpd", {}).get(metric, {}).get(comp)
+            ratio = mazu / base if base and mazu is not None else None
+            rows.append([rps, comp]
+                        + [None if v is None else f"{v / div:.{digits}f}"
+                           for v in vals]
+                        + [None if ratio is None else f"{ratio:.3f}"])
+    doc = DAT_DOC.format(stem="cpu" if metric == "cpu" else "memory",
+                         metric=metric, units=units, conv=conv)
+    return write_dat(out, doc, header, rows)
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(f"usage: {sys.argv[0]} <benchmark-run-dir>", file=sys.stderr)
@@ -361,7 +457,10 @@ def main() -> int:
             continue
         outs = [run_dir / f"{stem}.pdf", run_dir / f"{stem}.png"]
         plot_metric(data, strategies, metric, outs)
-        written.extend(outs)
+        # Same values as the bars -- see the ".dat export" section above.
+        dat = write_metric_dat(data, strategies, metric,
+                               run_dir / f"{stem}.dat")
+        written.extend(outs + [dat])
         print_table(data, strategies, metric)
 
     if not written:

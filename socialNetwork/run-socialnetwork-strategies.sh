@@ -163,8 +163,8 @@ NAMESPACE="${NAMESPACE:-default}"
 
 STRATEGIES=(${STRATEGIES:-"st5-AttUpd" "istio"})
 SUBSTRATE="${SUBSTRATE:-all-correct}"
-RPS_VALUES=(${RPS_VALUES:-100 200 400 600 800 1000 1200 1400})
-DURATION=${DURATION:-120}
+RPS_VALUES=(${RPS_VALUES:-100 200 400 600 800 1000 1200 1400 1600 1800 2000})
+DURATION=${DURATION:-240}
 THREADS=${THREADS:-16}
 CONNS=${CONNS:-128}
 WORKLOAD="${WORKLOAD:-mixed-workload.lua}"
@@ -905,14 +905,55 @@ EOF
     done
 
     # ---- Spanning pod poller (1 Hz) ----
+    #
+    # WHY THIS DOES NOT SELECT ON `service`. The DeathStarBench chart stamps a
+    # `service` label via _baseDeployment.tpl, but the datastore tier does not
+    # come from that chart -- mongodb-sharded, memcached and redis-cluster are
+    # upstream Bitnami subcharts (helm-chart/socialnetwork/charts/*.tgz) that
+    # label with app.kubernetes.io/*, and mcrouter uses a plain `app`. A
+    # `-l 'service'` selector therefore returned the 46 application pods and
+    # SILENTLY omitted all 19 datastore pods -- 29% of the running fleet, and
+    # the half of it that holds the state. Measured on the 09-03 12:45 run: the
+    # growth chart read 46 while summary.csv read 67 for the same fleet, and
+    # neither number was wrong, they were just counting different things.
+    #
+    # So poll every pod and DERIVE the service name, most specific label first:
+    #   1. `service`                       -- DeathStarBench app tier, as before
+    #   2. app.kubernetes.io/name[-component]
+    #                                      -- Bitnami. The component suffix
+    #                                         matters: without it mongos,
+    #                                         configsvr and shardsvr collapse
+    #                                         into one "mongodb-sharded" bar
+    #                                         and the shard fleet is unreadable.
+    #   3. `app`                           -- mcrouter
+    #   4. no labels at all                -- the setup-* helm hooks. Dropped:
+    #                                         they are Completed Jobs, not
+    #                                         serving capacity, and counting
+    #                                         them is what made summary.csv's
+    #                                         pods column read 67 instead of 65.
+    # nfs-subdir-external-provisioner is dropped by name for the same reason it
+    # is in READY_EXCLUDE: cluster infrastructure that predates the run and is
+    # not part of the workload.
+    #
+    # A missing label yields an empty jsonpath field rather than a dropped one,
+    # so the comma positions hold and awk can pick by column. The emitted CSV
+    # schema is unchanged (timestamp,service,phase,ready), so
+    # summarize_sn_pods.py -- which discovers the service set from the data --
+    # needs no change to pick the datastore tier up.
     POD_CSV="$RES_DIR/pods.csv"
     echo "timestamp,service,phase,ready" > "$POD_CSV"
     (
         while true; do
             ts=$(date +%s)
-            kubectl get pods -n "$NAMESPACE" -l 'service' \
-                -o jsonpath='{range .items[*]}{.metadata.labels.service}{","}{.status.phase}{","}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' 2>/dev/null \
-              | awk -v ts="$ts" 'NF{print ts","$0}' >> "$POD_CSV" &
+            kubectl get pods -n "$NAMESPACE" \
+                -o jsonpath='{range .items[*]}{.metadata.name}{","}{.metadata.labels.service}{","}{.metadata.labels.app}{","}{.metadata.labels['"'"'app\.kubernetes\.io/name'"'"']}{","}{.metadata.labels['"'"'app\.kubernetes\.io/component'"'"']}{","}{.status.phase}{","}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' 2>/dev/null \
+              | awk -F, -v ts="$ts" 'NF>=7 && $1 !~ /^nfs-subdir-external-provisioner/ {
+                    if ($2 != "")      svc = $2
+                    else if ($4 != "") svc = ($5 != "" ? $4 "-" $5 : $4)
+                    else if ($3 != "") svc = $3
+                    else               next
+                    print ts "," svc "," $6 "," $7
+                }' >> "$POD_CSV" &
             sleep 1
         done
     ) &
@@ -935,9 +976,12 @@ EOF
             "$POD_CSV" > "$RES_DIR/pods-${RPS}.csv"
 
         # collect_metrics_sn.sh, not collect_metrics.sh: the latter collects
-        # only the istio-proxy sidecar, and sn-hpa.yaml scales on the max of
-        # the sidecar AND the app container -- so the old collector cannot say
-        # which metric drove a scale-up. See that script's header.
+        # only the istio-proxy sidecar. Both containers are needed here, but
+        # for opposite reasons -- sn-hpa.yaml now scales on the APP container
+        # alone, so that is the control input and the reason a step's fleet is
+        # the size it is, while the sidecar's CPU is the OUTCOME the whole
+        # comparison exists to measure. See that script's header, and the
+        # WHY APP CPU ONLY note in scratch/yaml/sn-hpa.yaml.
         "$SCRIPT_DIR/collect_metrics_sn.sh" "$RES_DIR" "$DURATION" "$BENCH_START" "$RPS" \
             || warn "Metrics collection failed for RPS=$RPS"
 
@@ -978,11 +1022,21 @@ EOF
             "$OUT_FILE" | tr -d ',')
         [[ -z "$TIMEOUTS" ]] && TIMEOUTS=0
 
-        # Under HPA the fleet is the dependent variable, so report it per step
-        # rather than the constant captured before the sweep.
-        STEP_PODS="$PODCOUNT"
-        [[ "$HPA" == "1" ]] && STEP_PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null \
+        # Measure the fleet EVERY step, under HPA or not, and with the same
+        # READY_EXCLUDE filter the poller now uses.
+        #
+        # This used to fall back to $PODCOUNT whenever HPA=0, which had two
+        # problems. PODCOUNT is captured once before the sweep and filters only
+        # on 'nfs-subdir', so it counts the Completed setup-* helm hooks as
+        # though they were serving capacity -- that is why the 09-03 12:45 run
+        # reported 67 on all 18 rows against a real fleet of 65. And a value
+        # repeated from before the sweep cannot show a fixed-replica run
+        # LOSING a pod mid-sweep, which is exactly when you want to know.
+        # Re-querying costs one kubectl per step and makes the column agree
+        # with pods.csv in both modes.
+        STEP_PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null \
             | grep -Ev "$READY_EXCLUDE" | wc -l | tr -d ' ')
+        [[ -z "$STEP_PODS" || "$STEP_PODS" == "0" ]] && STEP_PODS="$PODCOUNT"
 
         echo "$STRAT,$RPS,${DELIVERED:-},$(to_ms "${P50:-0}"),$(to_ms "${P99:-0}"),$NON2XX,$TIMEOUTS,$OVERLAP,$STEP_PODS" >> "$SUMMARY"
     done
@@ -1011,6 +1065,14 @@ done
 # All four take the RUN ROOT, not a per-strategy directory, and discover the
 # arms from its subdirectories -- so a sweep in which one arm was skipped
 # still plots the arm that ran, and adding a third strategy needs no change.
+#
+# Each plotter writes a .dat beside every figure holding the exact series it
+# drew: tab-separated, '#'-commented header (so gnuplot reads it directly),
+# missing samples as N/A rather than 0. Every file opens with a block naming
+# the artifact its numbers came from and the transform applied -- the unit
+# normalisation, the denominator, why one field was used and its neighbour was
+# not. That block is the point: it is what lets someone check a surprising bar
+# months later, off this machine, without re-reading the plotting code.
 mazu_echo "Generating comparison plots..."
 
 python3 "$SCRIPT_DIR/summarize_sn_pods.py" "$RESULTS_ROOT" \
@@ -1035,8 +1097,15 @@ mazu_echo "=== DONE ==="
 echo "Summary: $SUMMARY"
 column -s, -t < "$SUMMARY"
 echo
-echo "Plots in $RESULTS_ROOT (pdf + png):"
+echo "Plots in $RESULTS_ROOT (pdf + png, with the plotted numbers in .dat):"
 for f in plot_sn_pod_growth plot_sn_pod_totals plot_sn_pod_final \
          plot_sn_latency plot_sn_cpu plot_sn_memory; do
-    [[ -f "$RESULTS_ROOT/$f.pdf" ]] && echo "  $f.pdf"
+    [[ -f "$RESULTS_ROOT/$f.pdf" ]] || continue
+    # The .dat is listed only when it exists: an older plotter, or one that
+    # failed after saving the figure, still leaves a usable PDF.
+    if [[ -f "$RESULTS_ROOT/$f.dat" ]]; then
+        echo "  $f.pdf  ($f.dat)"
+    else
+        echo "  $f.pdf"
+    fi
 done

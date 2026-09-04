@@ -2,35 +2,51 @@
 """Plot Istio-vs-Mazu request latency for a run-socialnetwork-strategies.sh sweep.
 
 Produces under <run-dir>:
+  - plot_sn_latency.dat          the numbers behind both panels, tab-separated,
+                                 with a comment block naming every source file
+                                 and transform. Checkable without a PDF reader
+                                 and re-plottable in gnuplot.
   - plot_sn_latency.pdf / .png   two stacked panels sharing the RPS axis:
 
     TOP    p50 / p90 / p99 response time vs target RPS. One colour per
            strategy (stable across every plot in this repo family), one line
            style per percentile.
-    BOTTOM what those percentiles LEFT OUT: timed-out requests as a share of
-           the offered load, grouped bars per strategy, with non-2xx overlaid.
+    BOTTOM what those percentiles LEFT OUT: offered load that never completed,
+           as a share of the offered load, grouped bars per strategy, with
+           non-2xx overlaid.
 
 WHY THE SECOND PANEL EXISTS -- read this before quoting a p99 from the top one.
 
-TIMED-OUT REQUESTS ARE NOT IN WRK2'S LATENCY HISTOGRAM. wrk2 drops any request
-that exceeds the socket timeout before it ever reaches the HdrHistogram, so
-every percentile above describes only the requests that CAME BACK. A step can
-therefore report an excellent p99 while a large fraction of the offered load
-never completed at all, and non_2xx stays ~0 alongside it because a timeout is
-not an HTTP status -- there is no response to carry a status code.
+UNCOMPLETED REQUESTS ARE NOT IN WRK2'S LATENCY HISTOGRAM. wrk2 drops any
+request that exceeds the socket timeout before it ever reaches the
+HdrHistogram, and a request the client never managed to send never existed to
+begin with -- so every percentile above describes only the requests that CAME
+BACK. A step can therefore report an excellent p99 while a large fraction of
+the offered load never completed at all, and non_2xx stays ~0 alongside it
+because neither failure carries an HTTP status.
 
-This is not hypothetical. In the very fixture this script was developed
-against, BOTH arms at 100 RPS report a tidy-looking p99 (istio 201.98ms, Mazu
-225.66ms) while the raw wrk2 output logs 4237 and 4281 timeouts respectively
-against ~30000 offered requests. Roughly one request in seven vanished, and a
-latency-only plot would have shown that step as the healthiest in the sweep.
+This is not hypothetical, and it bites from BOTH ends of a sweep:
+
+  low  RPS  wrk2's connection pool times out during warm-up. On the 09-03
+            12:45 run both arms at 100 RPS report a tidy p99 (~205-210ms)
+            while logging ~3400 timeouts against 24000 offered.
+  high RPS  the harness saturates and simply cannot push the target rate. Same
+            run at 1600 RPS: both arms delivered ~1270 RPS against 1600, so
+            20-30% of the sweep never left the client -- with 0 timeouts and
+            0 non-2xx, because nothing failed, it was never sent.
+
+So the flag fires on SHORTFALL (offered - completed), not on wrk2's timeout
+counter. That counter is per socket EVENT rather than per request, which makes
+it both an unreliable magnitude -- completed + timeouts exceeded offered on the
+100 RPS step above -- and blind to the saturation case entirely. Flagging on it
+marked that run's two mildest steps and left its two most degraded ones clean.
 
 It is load-bearing for the Istio-vs-Mazu comparison specifically: a mesh that
-degrades by TIMING OUT rather than by returning errors scores equal-or-better
-on every latency column. So the two panels are drawn together, share an x
-axis, and any step where timeouts exceed FLAG_FRAC of the offered load is
-shaded in both panels and ringed in red. You cannot read a percentile here
-without seeing how much load it excludes.
+degrades by FAILING TO ANSWER rather than by returning errors scores
+equal-or-better on every latency column. So the two panels are drawn together,
+share an x axis, and any step whose shortfall exceeds FLAG_FRAC of the offered
+load is shaded in both panels and ringed in red. You cannot read a percentile
+here without seeing how much load it excludes.
 
 Percentiles are read from the raw wrk2 output (<strategy>/<rps>.txt) because
 summary.csv only carries p50 and p99; p90 is where the Mazu tail first opens
@@ -80,6 +96,11 @@ PCTS = [("p50", ":", "o"), ("p90", "--", "s"), ("p99", "-", "^")]
 # the fixture, so it separates "a few stragglers" from "the percentiles are
 # describing a minority of the traffic".
 FLAG_FRAC = 0.01
+
+# Vertical slots (axes fraction) for the flagged-step callouts, cycled in
+# order. Three rows fit the band set_ylim reserves; a fourth would push the
+# lowest row into the p99 curve on a flat sweep.
+CALLOUT_SLOTS = (0.985, 0.86, 0.735)
 
 # wrk2 percentile lines: " 99.000%    1.14s " / " 50.000%   19.50ms".
 # Alternation order matters: "us" and "ms" must be tried before bare "s"/"m".
@@ -259,6 +280,56 @@ def collect(run_dir: Path) -> dict:
             step["non_2xx_frac"] = (n2 / step["offered"]
                                     if n2 is not None and step["offered"]
                                     else None)
+
+            # SHORTFALL -- offered minus completed. This, not the timeout
+            # count, is what the percentiles left out.
+            #
+            # Two independent reasons wrk2's timeout counter is the wrong
+            # basis for the flag:
+            #
+            # 1. IT IS NOT A REQUEST COUNT. wrk2 increments it per socket
+            #    timeout EVENT across the connection pool, so it can exceed
+            #    the requests actually lost. On the 09-03 12:45 fixture,
+            #    Istio at 100 RPS reported 22862 completed + 3412 timeouts
+            #    against 24000 offered -- 2274 more than were ever sent. A
+            #    "14.2% timed out" built on that denominator is not a
+            #    fraction of anything.
+            # 2. IT MISSES THE WORST STEPS ENTIRELY. When the harness cannot
+            #    push the target rate the load simply never leaves the client:
+            #    no socket times out, no HTTP status is returned, and the
+            #    timeout counter stays at 0. Same fixture at 1600 RPS: both
+            #    arms delivered ~1270 RPS against 1600 offered and lost 20-30%
+            #    of the sweep, with 0 timeouts and 0 non-2xx -- so the old
+            #    rule flagged the two mildest steps and left the two most
+            #    degraded ones unmarked.
+            #
+            # offered - completed captures both, and it is the quantity the
+            # bottom panel's axis has always claimed to show. Clamped at 0:
+            # wrk2's own count can edge a few requests past target on a step
+            # it fully served, and a negative loss is meaningless.
+            if step["offered"] and step["requests"] is not None:
+                step["shortfall"] = max(0, round(step["offered"] - step["requests"]))
+                step["shortfall_frac"] = step["shortfall"] / step["offered"]
+            else:
+                step["shortfall"] = None
+                step["shortfall_frac"] = None
+
+            # What the flag and the bottom panel actually use. Prefer the
+            # shortfall; fall back to the timeout count only when there is no
+            # raw wrk2 file to supply a completed count (summary.csv alone),
+            # so a partial run still flags rather than silently reading clean.
+            if step["shortfall_frac"] is not None:
+                step["loss_frac"] = step["shortfall_frac"]
+                step["loss_n"] = step["shortfall"]
+                step["loss_basis"] = "shortfall"
+            elif step["timeout_frac"] is not None:
+                step["loss_frac"] = step["timeout_frac"]
+                step["loss_n"] = step["timeouts"]
+                step["loss_basis"] = "timeouts"
+            else:
+                step["loss_frac"] = None
+                step["loss_n"] = None
+                step["loss_basis"] = None
             steps[strat][rps] = step
     return steps
 
@@ -297,7 +368,7 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
     flagged = set()
     for strat in strategies:
         for rps, s in steps[strat].items():
-            if s["timeout_frac"] is not None and s["timeout_frac"] >= FLAG_FRAC:
+            if s["loss_frac"] is not None and s["loss_frac"] >= FLAG_FRAC:
                 flagged.add(rps)
     for rps in sorted(flagged):
         i = rps_values.index(rps)
@@ -327,8 +398,8 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
         for i, rps in enumerate(rps_values):
             s = steps[strat].get(rps)
             if (s and s.get("p99") is not None
-                    and s["timeout_frac"] is not None
-                    and s["timeout_frac"] >= FLAG_FRAC):
+                    and s["loss_frac"] is not None
+                    and s["loss_frac"] >= FLAG_FRAC):
                 rx.append(i)
                 ry.append(s["p99"])
         if rx:
@@ -340,30 +411,60 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
     ax_lat.grid(alpha=0.3, which="both")
     ax_lat.set_title("SocialNetwork latency: completed requests only",
                      fontsize=12)
-    # Headroom so the legend and the timeout callouts clear the p99 curve,
-    # and so the p50 line does not sit on the bottom spine.
+    # Headroom so the legend and the loss callouts clear the p99 curve, and
+    # so the p50 line does not sit on the bottom spine. The callouts are
+    # parked in a reserved band across the top (see below), so the headroom
+    # has to grow with how many rows that band needs -- on a saturating sweep
+    # nearly every step flags, and 4x left the top rows outside the axes.
     lo, hi = ax_lat.get_ylim()
-    ax_lat.set_ylim(lo / 1.5, hi * 4.0)
+    n_slots = min(len(flagged), len(CALLOUT_SLOTS)) or 1
+    ax_lat.set_ylim(lo / 1.5, hi * (3.6 ** n_slots))
     handles, labels = ax_lat.get_legend_handles_labels()
     if flagged:
         handles.append(plt.Line2D([], [], marker="o", markersize=11,
                                   markerfacecolor="none",
                                   markeredgecolor="tab:red", linestyle="none"))
         labels.append(f"p99 excludes >{FLAG_FRAC:.0%} of offered load")
+    # Lower right, not upper left: the callout band now owns the top of the
+    # axes, and on a saturating sweep the bottom-right is the one region no
+    # curve reaches -- every percentile has already climbed by the last steps.
     ax_lat.legend(handles, labels, fontsize=8, ncol=max(1, len(strategies)),
-                  loc="upper left")
+                  loc="lower right")
 
     # Spell out the loss on every flagged step. One callout per step, listing
     # every strategy in it -- per-strategy callouts collide when both arms are
     # flagged at the same rate, which is the common case.
+    #
+    # Flagging on shortfall marks far more steps than flagging on timeouts did
+    # (7 of 9 on the 09-03 fixture, against 2), and at that density the boxes
+    # collide. Offsetting them in POINTS from each p99 point does not fix it:
+    # on a saturating sweep p99 climbs two orders of magnitude across the
+    # sweep, so a box pinned to a low-RPS point and a box pinned to a
+    # high-RPS one land at unrelated heights and still overlap.
+    #
+    # So park the callouts in a reserved band at the TOP of the axes instead,
+    # cycling through fixed slots, and let the leader line carry the eye back
+    # down to the point. Boxes then cannot collide with each other or with the
+    # data, whatever the sweep looks like. set_ylim above reserves the band.
+    flag_seq = 0
     for i, rps in enumerate(rps_values):
         lines, anchor = [], None
         for strat in strategies:
             s = steps[strat].get(rps)
-            if not s or s["timeout_frac"] is None or s["timeout_frac"] < FLAG_FRAC:
+            if not s or s["loss_frac"] is None or s["loss_frac"] < FLAG_FRAC:
                 continue
-            lines.append(f"{label_of(strat)}: {s['timeout_frac']:.1%} "
-                         f"({s['timeouts']:,} reqs)")
+            # Name the mechanism, not just the size. A step that lost load to
+            # timeouts and one that lost it because the client never reached
+            # the target rate look identical in the bar height and call for
+            # completely different follow-up.
+            if s["loss_basis"] == "shortfall" and s["timeouts"]:
+                why = f", {s['timeouts']:,} timed out"
+            elif s["loss_basis"] == "shortfall":
+                why = ", not offered"
+            else:
+                why = " timed out"
+            lines.append(f"{label_of(strat)}: {s['loss_frac']:.1%} "
+                         f"({s['loss_n']:,} reqs{why})")
             if s.get("p99") is not None:
                 anchor = max(anchor or 0, s["p99"])
         if not lines or anchor is None:
@@ -371,12 +472,17 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
         # Callouts on the right-hand steps point leftwards, or they run off
         # the axes on a long sweep.
         right = i > (len(rps_values) - 1) / 2
+        slot = CALLOUT_SLOTS[flag_seq % len(CALLOUT_SLOTS)]
+        flag_seq += 1
+        # x in axes fraction, tracking the step so the leader line stays short,
+        # but inset from the spines so a box at either end stays on the canvas.
+        xf = min(0.97, max(0.03, (i + 0.5) / max(len(rps_values), 1)))
         ax_lat.annotate(
-            "timed out, absent from these percentiles\n" + "\n".join(lines),
-            xy=(i, anchor), xytext=(-10 if right else 10, 34),
-            textcoords="offset points",
+            "never completed, absent from these percentiles\n" + "\n".join(lines),
+            xy=(i, anchor), xycoords="data", xytext=(xf, slot),
+            textcoords="axes fraction",
             fontsize=7.5, color="tab:red",
-            ha="right" if right else "left", va="bottom",
+            ha="right" if right else "left", va="top",
             bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
                       edgecolor="tab:red", alpha=0.9, linewidth=0.8),
             arrowprops=dict(arrowstyle="->", color="tab:red", lw=0.9))
@@ -393,17 +499,17 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
         to_pct, n2_pct, labels_txt = [], [], []
         for rps in rps_values:
             s = steps[strat].get(rps)
-            tf = s["timeout_frac"] if s else None
+            tf = s["loss_frac"] if s else None
             nf = s["non_2xx_frac"] if s else None
             to_pct.append(0.0 if tf is None else tf * 100)
             n2_pct.append(0.0 if nf is None else nf * 100)
-            if s and s.get("timeouts") is not None:
+            if s and s.get("loss_n") is not None:
                 any_completion = True
-                labels_txt.append(f"{s['timeouts']:,}")
+                labels_txt.append(f"{s['loss_n']:,}")
             else:
                 labels_txt.append("n/a")
         bars = ax_to.bar(x + off, to_pct, width, color=c,
-                         label=f"{label_of(strat)} timeouts")
+                         label=f"{label_of(strat)} never completed")
         # non-2xx stacked on top: at fixture scale (10 of 120000) it is a hair
         # line, which is exactly the point -- the loss is timeouts, not statuses.
         ax_to.bar(x + off, n2_pct, width, bottom=to_pct, color=c,
@@ -426,15 +532,19 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
     ax_to.grid(alpha=0.3, axis="y")
     ax_to.legend(fontsize=8, ncol=max(1, len(strategies)), loc="upper right")
     ax_to.set_title("What the percentiles above leave out "
-                    "(bar labels = timeout count)", fontsize=10)
+                    "(bar labels = requests offered but never completed)",
+                    fontsize=10)
     top = max(ax_to.get_ylim()[1], FLAG_FRAC * 100 * 1.6)
     ax_to.set_ylim(0, top * 1.25)
 
     fig.text(0.01, 0.005,
-             "wrk2 drops timed-out requests before its histogram, so the top "
-             "panel describes only completed requests; a low p99 over a tall "
-             "bar below is a step that mostly did not answer. "
-             "Offered load = target RPS x step duration.",
+             "Top panel describes only requests that completed. Bottom bars = "
+             "offered load minus completed (timed out, or never sent because "
+             "the client could not reach the target rate) -- a low p99 over a "
+             "tall bar is a step that mostly did not answer. "
+             "Offered load = target RPS x step duration; wrk2's timeout "
+             "counter counts socket events, not requests, and is not the "
+             "basis of the flag.",
              fontsize=7.5, color="0.3", ha="left", va="bottom", wrap=True)
 
     fig.tight_layout(rect=(0, 0.035, 1, 1))
@@ -448,6 +558,122 @@ def plot(steps: dict, run_dir: Path, outputs: list) -> None:
     if not any_completion:
         print("warning: no timeout data found (old summary.csv and no raw "
               "wrk2 output?); bottom panel is empty", file=sys.stderr)
+
+
+# ===========================================================================
+# .dat export
+#
+# The figure and this file are built from the same step dicts, so the .dat is
+# the figure in text form -- not a re-derivation that can drift from it. The
+# columns the figure does NOT draw (offered_reqs, completed_reqs, duration_s)
+# are carried anyway: they are the denominators every percentage here rests
+# on, and a reader checking a suspicious step needs them.
+# ===========================================================================
+
+LATENCY_DOC = f"""\
+Data behind plot_sn_latency.pdf/.png -- both panels, one row per (strategy, RPS step).
+
+SOURCE     percentiles: <run-dir>/<strategy>/<rps>.txt, the raw wrk2 output
+           ("Latency Distribution" block). summary.csv carries only p50 and
+           p99, so p90 exists ONLY here; where a raw file is missing, p50/p99
+           fall back to summary.csv and p90 is N/A.
+           timeouts / non_2xx: summary.csv when the column is present, else the
+           raw "Socket errors: ... timeout N" and "Non-2xx or 3xx responses: N"
+           lines. wrk2 OMITS both lines entirely when the count is zero, so an
+           absent line is read as 0 rather than as unknown.
+TRANSFORM  wrk2 prints us / ms / s AND m -- it switches to minutes past ~60s,
+           e.g. "0.95m" -- so every latency here is normalised to MILLISECONDS.
+           offered_reqs = target RPS x the step duration wrk2 reports ("N
+           requests in 4.00m"), NOT wrk2's own request count: that count
+           already excludes the requests that timed out, and using it as the
+           denominator would understate the loss. completed_reqs is wrk2's
+           count, kept alongside for exactly that comparison.
+           shortfall     = offered_reqs - completed_reqs, floored at 0. THIS
+                           is the load the percentiles left out, and it is
+                           what the bottom panel draws and the flag fires on.
+                           It covers both ways a step loses traffic: requests
+                           the server never answered, and requests the client
+                           never managed to send.
+           shortfall_pct = shortfall / offered_reqs x 100
+           timeout_pct   = timeouts / offered_reqs x 100
+           non_2xx_pct   = non_2xx  / offered_reqs x 100
+           loss_basis    = which quantity the flag used: `shortfall` normally,
+                           `timeouts` only where no raw wrk2 file supplied a
+                           completed count.
+           flagged       = yes once shortfall_pct >= {FLAG_FRAC:.0%} of the
+                           offered load -- the steps the figure shades and
+                           rings in red.
+WARNING    timeouts IS NOT A REQUEST COUNT and is NOT the basis of the flag.
+           wrk2 increments it per socket timeout EVENT across the connection
+           pool, so timeout_pct can exceed shortfall_pct and even imply more
+           lost requests than were ever offered -- on the 09-03 12:45 run,
+           Istio at 100 RPS reported 22862 completed + 3412 timeouts against
+           24000 offered. Read it as a symptom ("the losses were socket
+           timeouts") and read shortfall_pct for the magnitude.
+           The converse also holds: a step whose client could not reach the
+           target rate loses load with timeouts=0 and non_2xx=0, which is why
+           flagging on timeouts marked the two mildest steps of that run and
+           left the two most degraded ones clean.
+CAVEAT     THE PERCENTILES DESCRIBE COMPLETED REQUESTS ONLY. wrk2 drops a
+           timed-out request before it reaches the histogram, so a step can
+           report an excellent p99 while a large share of the offered load
+           never came back -- and non_2xx stays ~0 beside it, because a
+           timeout carries no HTTP status. Read p50/p90/p99 next to
+           shortfall_pct on the same row, never on their own.
+UNITS      latency in ms; *_pct in percent of offered load; counts in requests;
+           duration_s in seconds.
+"""
+
+
+def write_dat(path: Path, doc: str, header: list, rows: list) -> Path:
+    """Write one tab-separated gnuplot .dat: comment block, header, rows.
+
+    The header line is '#'-prefixed (a gnuplot comment, matching
+    generate_dat.py) so the file plots directly with no skip-row argument.
+    None -> "N/A": a value we do not have must never be read as a measured 0 --
+    the distinction between "no timeouts" and "no timeout data" is the whole
+    point of the bottom panel.
+    """
+    with path.open("w") as f:
+        for line in doc.strip("\n").splitlines():
+            f.write(("# " + line).rstrip() + "\n")
+        f.write("# " + "\t".join(str(h) for h in header) + "\n")
+        for row in rows:
+            f.write("\t".join("N/A" if v is None else str(v) for v in row) + "\n")
+    return path
+
+
+def write_latency_dat(steps: dict, out: Path) -> Path:
+    def f(v, digits=2):
+        return None if v is None else f"{v:.{digits}f}"
+
+    header = ["strategy", "rps", "p50_ms", "p90_ms", "p99_ms",
+              "shortfall", "shortfall_pct", "timeouts", "timeout_pct",
+              "non_2xx", "non_2xx_pct", "offered_reqs", "completed_reqs",
+              "duration_s", "loss_basis", "flagged"]
+    rows = []
+    for strat in order_strategies(steps):
+        for rps in sorted(steps[strat]):
+            s = steps[strat][rps]
+            tf, lf = s["timeout_frac"], s["loss_frac"]
+            rows.append([
+                label_of(strat), rps,
+                f(s["p50"]), f(s["p90"]), f(s["p99"]),
+                s["shortfall"],
+                f(None if s["shortfall_frac"] is None
+                  else s["shortfall_frac"] * 100, 3),
+                s["timeouts"],
+                f(None if tf is None else tf * 100, 3),
+                s["non_2xx"],
+                f(None if s["non_2xx_frac"] is None
+                  else s["non_2xx_frac"] * 100, 3),
+                f(s["offered"], 0), s["requests"], f(s["duration_s"]),
+                s["loss_basis"],
+                # Blank rather than "no" when we cannot tell: an unflagged row
+                # and an unmeasured one are different claims.
+                None if lf is None else ("yes" if lf >= FLAG_FRAC else "no"),
+            ])
+    return write_dat(out, LATENCY_DOC, header, rows)
 
 
 def main() -> int:
@@ -470,21 +696,27 @@ def main() -> int:
 
     pdf_out = run_dir / "plot_sn_latency.pdf"
     png_out = run_dir / "plot_sn_latency.png"
+    dat_out = run_dir / "plot_sn_latency.dat"
     plot(plottable, run_dir, [pdf_out, png_out])
+    # Same step dicts the figure was drawn from -- see ".dat export" above.
+    write_latency_dat(plottable, dat_out)
 
     for strat in order_strategies(plottable):
         for rps in sorted(plottable[strat]):
             s = plottable[strat][rps]
             fmt = lambda v: "n/a" if v is None else f"{v:.2f}ms"
-            tf = ("n/a" if s["timeout_frac"] is None
-                  else f"{s['timeout_frac']:.2%}")
+            lf = ("n/a" if s["loss_frac"] is None
+                  else f"{s['loss_frac']:.2%}")
+            flag = ("  <-- FLAGGED" if s["loss_frac"] is not None
+                    and s["loss_frac"] >= FLAG_FRAC else "")
             print(f"  {label_of(strat):<6} @ {rps:>5} RPS  "
                   f"p50={fmt(s['p50']):>10} p90={fmt(s['p90']):>10} "
                   f"p99={fmt(s['p99']):>11}  "
-                  f"timeouts={s['timeouts']} ({tf} of offered)  "
-                  f"non_2xx={s['non_2xx']}")
+                  f"never_completed={s['loss_n']} ({lf} of offered)  "
+                  f"timeouts={s['timeouts']} non_2xx={s['non_2xx']}{flag}")
     print(f"wrote {pdf_out}")
     print(f"wrote {png_out}")
+    print(f"wrote {dat_out}")
     return 0
 
 
