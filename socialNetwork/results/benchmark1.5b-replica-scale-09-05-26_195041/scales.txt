@@ -1,0 +1,27 @@
+# Benchmark 1.5b replica-scale sweep
+# started      Sat Sep  5 07:50:41 PM MDT 2026
+# scales       1 2 4 8 16 32
+# rps_values   100 200 400 800 1200 1600 2000
+# duration_s   120
+# strategies   st5-AttUpd istio
+# source_yaml  /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/bookinfo-const.yaml / /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/bookinfo-const-tpm.yaml
+# conn_reuse   1
+# scale    app_replicas ready_timeout  status
+  1x       6            360s           ok
+  2x       12           420s           ok
+  4x       24           540s           ok
+  8x       48           780s           ok
+  16x      96           1260s          ok
+  32x      192          2220s          ok
+# finished     Sat Sep  5 10:45:51 PM MDT 2026  (scales 1-16)
+# finished     Sun Sep  6 02:53:18 PM MDT 2026  (scale 32, re-run)
+#
+# NOTE 32x is from a re-run on 09-06 into this same directory. Its first
+#      attempt on 09-05 was recorded FAILED, not because the cluster could
+#      not seat 192 pods -- it did, and 191 of them were Ready in under 18s
+#      -- but because one st5-AttUpd sidecar needed a restart and came up at
+#      +620s, tripping the Deployment's default 600s progressDeadlineSeconds
+#      three seconds before the fleet reached 32/32. The sweep now stamps
+#      progressDeadlineSeconds to match READY_TIMEOUT and waits on replica
+#      counts rather than `kubectl rollout status`. The failed attempt's
+#      logs are under logs/failed-32x-09-05/.

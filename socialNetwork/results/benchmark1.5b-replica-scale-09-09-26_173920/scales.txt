@@ -1,0 +1,17 @@
+# Benchmark 1.5b replica-scale sweep
+# started      Wed Sep  9 05:39:21 PM MDT 2026
+# scales       1 2 4 8 16 32
+# rps_values   100 200 400 800 1200 1600 2000
+# duration_s   120
+# strategies   st5-AttUpd istio
+# source_yaml  /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/bookinfo-const.yaml / /users/apoudel/DeathStarBench/socialNetwork/scratch/yaml/bookinfo-const-tpm.yaml
+# conn_reuse   0
+# mazu_image   docker.io/atosh502/proxyv2:st5-AttUpd
+# scale    app_replicas ready_timeout  status
+  1x       6            360s           ok
+  2x       12           420s           ok
+  4x       24           540s           ok
+  8x       48           780s           ok
+  16x      96           1260s          ok
+  32x      192          2220s          ok
+# finished Wed Sep  9 08:56:00 PM MDT 2026

@@ -1,0 +1,79 @@
+# Fleet-wide CPU and memory behind plot_15b_cluster_cpu_*.pdf and
+# plot_15b_cluster_memory_*.pdf, produced by plot_15b_cluster_resources.py.
+#
+# Source: <run-dir>/scale-<N>x/<strategy>/metrics_<rps>.json, written by
+# collect_metrics.sh, summed over the pods in each Prometheus instant vector.
+#   cpu_*     avg_over_time(rate(container_cpu_usage_seconds_total[1m])[dur:15s])
+#             in cores. sidecars = container="istio-proxy", namespace default.
+#   mem_*     avg_over_time(container_memory_working_set_bytes[dur]), reported
+#             here in MiB (1 MiB = 1048576 B).
+# App containers are NOT in any column: the collector pins
+# container="istio-proxy", so every "total" here is a MESH total, not the
+# machine's.
+#
+# columns
+# scale          replica multiplier of the app deployment
+# strategy       Istio (baseline) or Mazu (st5-AttUpd)
+# target_rps     the step's offered rate, and the sweep's step order in time
+# achieved_rps   requests / elapsed as reported by wrk2 -- what was DELIVERED
+# shortfall_pct  100 * (offered - completed) / offered, offered = target x elapsed
+# flagged        shortfall_pct >= 1; the fleet could not sustain the offered
+#                rate, so per-request columns for that step are not quotable
+# sidecars       number of istio-proxy pods summed into the sidecar columns
+# cpu_sidecars   cores, summed over sidecars
+# cpu_istiod     cores, control plane
+# cpu_apiserver  cores, kube-apiserver -- cluster-wide background, excluded from
+#                cpu_mesh_total (see the script docstring)
+# cpu_mesh_total cpu_sidecars + cpu_istiod  <- the headline total
+# cpu_with_api   cpu_mesh_total + cpu_apiserver
+# mcpu_per_krps  1000 * cpu_mesh_total / achieved_rps * 1000, i.e. mCPU spent
+#                per 1000 req/s actually completed
+# mem_* columns  the same decomposition in MiB
+# mem_per_car    mem_sidecars / sidecars, MiB per istio-proxy container
+# t_rel_min      minutes from the first step of the run to this step's window
+#                start (metrics metadata.start_epoch), for reading the sweep as
+#                a timeline rather than as an RPS axis
+# N/A            not measured. Never read it as a zero.
+# scale	strategy	target_rps	achieved_rps	shortfall_pct	flagged	sidecars	cpu_sidecars	cpu_istiod	cpu_apiserver	cpu_mesh_total	cpu_with_api	mcpu_per_krps	mem_sidecars_mib	mem_istiod_mib	mem_apiserver_mib	mem_mesh_total_mib	mem_with_api_mib	mem_per_car_mib	t_rel_min
+1x	Istio	100	95.5	4.55	yes	6	0.4747	0.0047	0.2775	0.4794	0.7569	5022.5	213.9	70.8	1385.0	284.7	1669.7	35.7	16.0
+1x	Istio	200	190.5	4.763	yes	6	0.8537	0.0044	0.2905	0.858	1.1485	4504.7	220.8	71.8	1447.0	292.6	1739.6	36.8	18.0
+1x	Istio	400	240.5	39.877	yes	6	0.9605	0.0037	0.299	0.9642	1.2632	4009.3	216.2	61.5	1479.1	277.7	1756.8	36.0	20.1
+1x	Istio	800	238.3	70.208	yes	6	0.9384	0.0038	0.293	0.9422	1.2352	3953.3	208.6	53.2	1468.4	261.8	1730.2	34.8	22.1
+1x	Istio	1200	237.7	80.196	yes	6	0.9491	0.0036	0.2958	0.9527	1.2485	4009.0	210.0	52.8	1468.0	262.8	1730.8	35.0	24.1
+1x	Istio	1600	231.9	85.509	yes	6	0.9725	0.0039	0.2825	0.9764	1.259	4211.3	210.3	53.4	1469.8	263.7	1733.5	35.0	26.1
+1x	Istio	2000	237.5	88.125	yes	6	0.96	0.0035	0.3037	0.9635	1.2672	4057.1	214.7	54.5	1472.4	269.2	1741.6	35.8	28.1
+1x	Mazu	100	95.5	4.525	yes	6	0.4716	0.0047	0.2591	0.4763	0.7354	4988.5	263.3	131.1	1366.2	394.5	1760.7	43.9	0.0
+1x	Mazu	200	190.5	4.763	yes	6	0.7859	0.0056	0.2871	0.7915	1.0786	4155.3	255.8	134.8	1381.9	390.7	1772.5	42.6	2.0
+1x	Mazu	400	239.3	40.177	yes	6	0.8719	0.0062	0.3097	0.8781	1.1878	3669.7	252.5	88.8	1394.3	341.2	1735.6	42.1	4.0
+1x	Mazu	800	237.6	70.301	yes	6	0.931	0.006	0.2797	0.937	1.2168	3943.9	252.7	89.0	1397.6	341.7	1739.3	42.1	6.0
+1x	Mazu	1200	237.5	80.208	yes	6	0.9114	0.0056	0.2995	0.917	1.2165	3861.2	253.4	89.7	1398.6	343.1	1741.7	42.2	8.0
+1x	Mazu	1600	233.6	85.399	yes	6	0.9424	0.0057	0.2764	0.9481	1.2245	4058.3	254.2	85.3	1393.0	339.4	1732.5	42.4	10.1
+1x	Mazu	2000	233.2	88.339	yes	6	0.9386	0.0057	0.2834	0.9442	1.2276	4048.6	254.8	85.3	1390.2	340.1	1730.3	42.5	12.1
+4x	Istio	100	95.4	4.583	yes	24	0.5707	0.0055	0.284	0.5762	0.8602	6038.8	806.3	133.8	1211.2	940.1	2151.2	33.6	80.9
+4x	Istio	200	190.5	4.771	yes	24	0.9888	0.0055	0.3021	0.9943	1.2964	5220.5	801.1	116.1	1225.0	917.2	2142.1	33.4	82.9
+4x	Istio	400	397.9	0.519	no	24	1.848	0.0076	0.3005	1.8556	2.1561	4663.2	746.7	121.5	1246.6	868.1	2114.7	31.1	84.9
+4x	Istio	800	800.0	0.006	no	24	3.2858	0.0048	0.2831	3.2906	3.5736	4113.4	756.9	120.1	1248.0	877.0	2125.0	31.5	87.0
+4x	Istio	1200	847.1	29.406	yes	24	3.7462	0.0046	0.291	3.7508	4.0418	4427.7	745.5	100.2	1244.0	845.6	2089.7	31.1	89.0
+4x	Istio	1600	852.8	46.697	yes	24	3.7397	0.0048	0.2885	3.7445	4.033	4390.6	749.0	78.9	1233.6	827.9	2061.4	31.2	91.0
+4x	Istio	2000	843.6	57.819	yes	24	3.7355	0.0055	0.2886	3.741	4.0296	4434.4	751.6	74.9	1242.8	826.4	2069.2	31.3	93.0
+4x	Mazu	100	95.5	4.55	yes	24	0.5832	0.0066	0.2673	0.5897	0.857	6178.4	1049.0	188.3	1260.3	1237.3	2497.6	43.7	64.8
+4x	Mazu	200	190.4	4.821	yes	24	1.0058	0.0068	0.285	1.0126	1.2976	5319.2	1010.2	180.0	1265.9	1190.2	2456.1	42.1	66.8
+4x	Mazu	400	397.9	0.525	no	24	1.8554	0.0069	0.3044	1.8623	2.1668	4680.4	937.6	100.1	1264.9	1037.7	2302.6	39.1	68.8
+4x	Mazu	800	799.5	0.068	no	24	3.2501	0.0067	0.2915	3.2568	3.5483	4073.7	949.2	103.6	1245.5	1052.8	2298.3	39.6	70.9
+4x	Mazu	1200	851.5	29.038	yes	24	3.6416	0.0066	0.3132	3.6482	3.9614	4284.2	963.9	104.5	1255.0	1068.4	2323.4	40.2	72.9
+4x	Mazu	1600	848.3	46.983	yes	24	3.7371	0.006	0.2954	3.7431	4.0385	4412.6	967.7	104.6	1261.7	1072.3	2334.0	40.3	74.9
+4x	Mazu	2000	853.2	57.338	yes	24	3.6846	0.0067	0.2966	3.6913	3.9879	4326.2	970.2	105.3	1262.3	1075.5	2337.7	40.4	76.9
+16x	Istio	100	95.4	4.558	yes	96	1.0973	0.0227	0.3132	1.12	1.4332	11734.6	3320.6	291.6	1387.5	3612.2	4999.7	34.6	146.6
+16x	Istio	200	190.4	4.787	yes	96	1.4277	0.015	0.3301	1.4427	1.7728	7576.3	3319.2	241.8	1423.9	3561.0	4985.0	34.6	148.6
+16x	Istio	400	397.6	0.588	no	96	2.4239	0.0425	0.3139	2.4664	2.7803	6202.5	3167.5	268.3	1435.3	3435.7	4871.1	33.0	150.7
+16x	Istio	800	800.0	0.0	no	96	4.1135	0.0226	0.3031	4.1361	4.4392	5170.1	3493.5	207.0	1436.4	3700.5	5137.0	36.4	152.7
+16x	Istio	1200	1201.2	0.0	no	96	5.9157	0.0061	0.3068	5.9218	6.2286	4929.8	3378.0	148.5	1429.7	3526.5	4956.3	35.2	154.7
+16x	Istio	1600	1600.7	0.0	no	96	7.8014	0.0056	0.2957	7.807	8.1026	4877.2	3097.9	103.6	1420.2	3201.6	4621.7	32.3	156.7
+16x	Istio	2000	2001.7	0.0	no	96	9.164	0.0054	0.3186	9.1695	9.4881	4580.8	3093.3	104.4	1426.0	3197.7	4623.6	32.2	158.7
+16x	Mazu	100	95.5	4.525	yes	96	1.6829	0.0551	0.4045	1.738	2.1425	18204.2	5109.1	326.2	1340.4	5435.3	6775.7	53.2	130.2
+16x	Mazu	200	190.4	4.796	yes	96	1.5292	0.0122	0.303	1.5414	1.8444	8095.2	5105.9	266.7	1375.1	5372.5	6747.7	53.2	132.2
+16x	Mazu	400	397.9	0.527	no	96	2.4774	0.0113	0.3317	2.4887	2.8205	6254.8	4508.7	183.0	1413.6	4691.7	6105.3	47.0	134.2
+16x	Mazu	800	800.4	0.0	no	96	4.1643	0.0116	0.3212	4.1759	4.497	5217.0	4474.4	186.2	1423.9	4660.5	6084.5	46.6	136.2
+16x	Mazu	1200	1201.3	0.0	no	96	5.9566	0.0115	0.323	5.9681	6.2911	4968.1	4488.2	187.2	1427.0	4675.4	6102.4	46.8	138.3
+16x	Mazu	1600	1601.5	0.0	no	96	7.5157	0.0117	0.3158	7.5275	7.8433	4700.2	4501.5	187.5	1428.7	4688.9	6117.7	46.9	140.3
+16x	Mazu	2000	2001.7	0.0	no	96	8.8977	0.0116	0.3287	8.9094	9.238	4451.0	4517.8	189.2	1429.7	4707.1	6136.8	47.1	142.3

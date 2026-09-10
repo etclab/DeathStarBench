@@ -1,0 +1,89 @@
+# RPS = 100
+Service                Istio              Mazu              
+details-v1             0.069094           0.067646          
+productpage-v1         0.250475           0.243663          
+ratings-v1             0.043867           0.044168          
+reviews-v1             0.026977           0.029062          
+reviews-v2             0.039624           0.045783          
+reviews-v3             0.044695           0.041289          
+istiod                 0.004664           0.004664          
+kube-apiserver         0.122465           0.104236          
+kube-apiserver-2       0.155081           0.154901          
+
+
+# RPS = 200
+Service                Istio              Mazu              
+details-v1             0.126325           0.108267          
+productpage-v1         0.446386           0.412397          
+ratings-v1             0.077791           0.074918          
+reviews-v1             0.048324           0.041592          
+reviews-v2             0.075200           0.073686          
+reviews-v3             0.079653           0.075055          
+istiod                 0.004350           0.005572          
+kube-apiserver         0.126577           0.111289          
+kube-apiserver-2       0.163937           0.175807          
+
+
+# RPS = 400
+Service                Istio              Mazu              
+details-v1             0.154874           0.142361          
+productpage-v1         0.466755           0.399572          
+ratings-v1             0.089741           0.091859          
+reviews-v1             0.055495           0.046188          
+reviews-v2             0.094832           0.095542          
+reviews-v3             0.098841           0.096417          
+istiod                 0.003671           0.006181          
+kube-apiserver         0.131745           0.124488          
+kube-apiserver-2       0.167206           0.185187          
+
+
+# RPS = 800
+Service                Istio              Mazu              
+details-v1             0.153489           0.140341          
+productpage-v1         0.441254           0.456152          
+ratings-v1             0.094256           0.095024          
+reviews-v1             0.055635           0.054695          
+reviews-v2             0.089626           0.093252          
+reviews-v3             0.104131           0.091548          
+istiod                 0.003816           0.006029          
+kube-apiserver         0.129500           0.110382          
+kube-apiserver-2       0.163483           0.169366          
+
+
+# RPS = 1200
+Service                Istio              Mazu              
+details-v1             0.150305           0.132534          
+productpage-v1         0.453675           0.452974          
+ratings-v1             0.088304           0.091140          
+reviews-v1             0.058091           0.054693          
+reviews-v2             0.094349           0.092887          
+reviews-v3             0.104408           0.087201          
+istiod                 0.003597           0.005608          
+kube-apiserver         0.134190           0.123115          
+kube-apiserver-2       0.161589           0.176344          
+
+
+# RPS = 1600
+Service                Istio              Mazu              
+details-v1             0.155780           0.150356          
+productpage-v1         0.464998           0.453143          
+ratings-v1             0.096181           0.093943          
+reviews-v1             0.056533           0.053350          
+reviews-v2             0.096537           0.094870          
+reviews-v3             0.102460           0.096731          
+istiod                 0.003930           0.005658          
+kube-apiserver         0.120677           0.112399          
+kube-apiserver-2       0.161866           0.164030          
+
+
+# RPS = 2000
+Service                Istio              Mazu              
+details-v1             0.154387           0.143856          
+productpage-v1         0.456372           0.453495          
+ratings-v1             0.096544           0.091545          
+reviews-v1             0.054084           0.053834          
+reviews-v2             0.098716           0.097789          
+reviews-v3             0.099913           0.098064          
+istiod                 0.003514           0.005654          
+kube-apiserver         0.139518           0.116111          
+kube-apiserver-2       0.164136           0.167299          

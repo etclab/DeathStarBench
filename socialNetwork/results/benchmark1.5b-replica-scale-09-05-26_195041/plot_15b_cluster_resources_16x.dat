@@ -1,0 +1,51 @@
+# Fleet-wide CPU and memory behind plot_15b_cluster_cpu_*.pdf and
+# plot_15b_cluster_memory_*.pdf, produced by plot_15b_cluster_resources.py.
+#
+# Source: <run-dir>/scale-<N>x/<strategy>/metrics_<rps>.json, written by
+# collect_metrics.sh, summed over the pods in each Prometheus instant vector.
+#   cpu_*     avg_over_time(rate(container_cpu_usage_seconds_total[1m])[dur:15s])
+#             in cores. sidecars = container="istio-proxy", namespace default.
+#   mem_*     avg_over_time(container_memory_working_set_bytes[dur]), reported
+#             here in MiB (1 MiB = 1048576 B).
+# App containers are NOT in any column: the collector pins
+# container="istio-proxy", so every "total" here is a MESH total, not the
+# machine's.
+#
+# columns
+# scale          replica multiplier of the app deployment
+# strategy       Istio (baseline) or Mazu (st5-AttUpd)
+# target_rps     the step's offered rate, and the sweep's step order in time
+# achieved_rps   requests / elapsed as reported by wrk2 -- what was DELIVERED
+# shortfall_pct  100 * (offered - completed) / offered, offered = target x elapsed
+# flagged        shortfall_pct >= 1; the fleet could not sustain the offered
+#                rate, so per-request columns for that step are not quotable
+# sidecars       number of istio-proxy pods summed into the sidecar columns
+# cpu_sidecars   cores, summed over sidecars
+# cpu_istiod     cores, control plane
+# cpu_apiserver  cores, kube-apiserver -- cluster-wide background, excluded from
+#                cpu_mesh_total (see the script docstring)
+# cpu_mesh_total cpu_sidecars + cpu_istiod  <- the headline total
+# cpu_with_api   cpu_mesh_total + cpu_apiserver
+# mcpu_per_krps  1000 * cpu_mesh_total / achieved_rps * 1000, i.e. mCPU spent
+#                per 1000 req/s actually completed
+# mem_* columns  the same decomposition in MiB
+# mem_per_car    mem_sidecars / sidecars, MiB per istio-proxy container
+# t_rel_min      minutes from the first step of the run to this step's window
+#                start (metrics metadata.start_epoch), for reading the sweep as
+#                a timeline rather than as an RPS axis
+# N/A            not measured. Never read it as a zero.
+# scale	strategy	target_rps	achieved_rps	shortfall_pct	flagged	sidecars	cpu_sidecars	cpu_istiod	cpu_apiserver	cpu_mesh_total	cpu_with_api	mcpu_per_krps	mem_sidecars_mib	mem_istiod_mib	mem_apiserver_mib	mem_mesh_total_mib	mem_with_api_mib	mem_per_car_mib	t_rel_min
+16x	Istio	100	95.4	4.558	yes	96	1.0973	0.0227	0.3132	1.12	1.4332	11734.6	3320.6	291.6	1387.5	3612.2	4999.7	34.6	16.4
+16x	Istio	200	190.4	4.787	yes	96	1.4277	0.015	0.3301	1.4427	1.7728	7576.3	3319.2	241.8	1423.9	3561.0	4985.0	34.6	18.4
+16x	Istio	400	397.6	0.588	no	96	2.4239	0.0425	0.3139	2.4664	2.7803	6202.5	3167.5	268.3	1435.3	3435.7	4871.1	33.0	20.5
+16x	Istio	800	800.0	0.0	no	96	4.1135	0.0226	0.3031	4.1361	4.4392	5170.1	3493.5	207.0	1436.4	3700.5	5137.0	36.4	22.5
+16x	Istio	1200	1201.2	0.0	no	96	5.9157	0.0061	0.3068	5.9218	6.2286	4929.8	3378.0	148.5	1429.7	3526.5	4956.3	35.2	24.5
+16x	Istio	1600	1600.7	0.0	no	96	7.8014	0.0056	0.2957	7.807	8.1026	4877.2	3097.9	103.6	1420.2	3201.6	4621.7	32.3	26.5
+16x	Istio	2000	2001.7	0.0	no	96	9.164	0.0054	0.3186	9.1695	9.4881	4580.8	3093.3	104.4	1426.0	3197.7	4623.6	32.2	28.6
+16x	Mazu	100	95.5	4.525	yes	96	1.6829	0.0551	0.4045	1.738	2.1425	18204.2	5109.1	326.2	1340.4	5435.3	6775.7	53.2	0.0
+16x	Mazu	200	190.4	4.796	yes	96	1.5292	0.0122	0.303	1.5414	1.8444	8095.2	5105.9	266.7	1375.1	5372.5	6747.7	53.2	2.0
+16x	Mazu	400	397.9	0.527	no	96	2.4774	0.0113	0.3317	2.4887	2.8205	6254.8	4508.7	183.0	1413.6	4691.7	6105.3	47.0	4.0
+16x	Mazu	800	800.4	0.0	no	96	4.1643	0.0116	0.3212	4.1759	4.497	5217.0	4474.4	186.2	1423.9	4660.5	6084.5	46.6	6.1
+16x	Mazu	1200	1201.3	0.0	no	96	5.9566	0.0115	0.323	5.9681	6.2911	4968.1	4488.2	187.2	1427.0	4675.4	6102.4	46.8	8.1
+16x	Mazu	1600	1601.5	0.0	no	96	7.5157	0.0117	0.3158	7.5275	7.8433	4700.2	4501.5	187.5	1428.7	4688.9	6117.7	46.9	10.1
+16x	Mazu	2000	2001.7	0.0	no	96	8.8977	0.0116	0.3287	8.9094	9.238	4451.0	4517.8	189.2	1429.7	4707.1	6136.8	47.1	12.1
