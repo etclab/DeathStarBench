@@ -7,7 +7,16 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ISTIOCTL_PATH="$HOME/istio-1.24.0/bin/istioctl"
 
 STRAT=${STRAT:-"atosh502"}
-TAG=${STRAT:-"atosh502"}
+# The strategy name is NOT just a label: it selects the Mazu ConfigMap's
+# attestation flags (dev/deploy-mazu-configmap.sh), the TPM operator overlay,
+# the TPM Bookinfo manifest and the TPM device-plugin setup -- all keyed on the
+# exact string "st5-AttUpd". So a run that wants a DIFFERENT proxy build must
+# keep STRAT and override only the image tag, or it silently gets a mesh with
+# attestation disabled and no TPM.
+#
+# MAZU_TAG is that override: it changes docker.io/atosh502/{pilot,proxyv2}:<tag>
+# and nothing else. Defaults to $STRAT, which is the historical behaviour.
+TAG=${MAZU_TAG:-${STRAT:-"atosh502"}}
 
 DURATION=${DURATION:-60}
 RPS=${RPS:-1000}

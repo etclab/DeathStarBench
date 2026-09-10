@@ -2,44 +2,60 @@
 # Istio vs Mazu comparison. Counterpart to scratch/yaml/bf-hpa.yaml, which
 # does the same job for Bookinfo in run-benchmark1.5b-sweep.sh.
 #
-# WHY APP CPU ONLY
-#   Each HPA scales on the APP container's CPU alone. The istio-proxy metric
-#   is commented out in place below so it can be restored -- but do not
-#   restore it for an Istio-vs-Mazu comparison. It made the fleet size a
-#   function of the mesh under test, which is the one thing this experiment
-#   cannot afford.
+# WHY BOTH CONTAINERS
+#   Each HPA scales on the APP container's CPU and on the istio-proxy
+#   sidecar's CPU, both targeting 70% utilization. This is the ORIGINAL
+#   sizing metric, restored deliberately.
 #
-#   The circularity it created: Mazu's proxy carries RBE and attestation work
-#   that stock Envoy does not, so it burns more sidecar CPU -> the HPA hands
-#   Mazu more pods -> the larger fleet absorbs the latency -> Mazu scores as
-#   comparable. Sidecar CPU is the quantity being MEASURED; it cannot also be
-#   the quantity driving the independent variable. It is now reported as an
-#   OUTCOME only (collect_metrics_sn.sh -> plot_sn_cpu.dat).
+#   autoscaling/v2 evaluates every metric in the list independently, derives a
+#   replica recommendation from each, and takes the MAX. So either container
+#   crossing 70% of its OWN request scales the deployment out, which is the
+#   "scale up if either one is over 70%" behaviour this is meant to have. Note
+#   the corollary: scale-DOWN requires BOTH to be under target, so the busier
+#   container alone governs the fleet in practice.
 #
-#   Measured on results/sn-sweep-09-02-26_203058, with the sidecar metric
-#   live: the two arms' fleets diverged 2.6x (55 vs 143 ready pods at 600
-#   RPS). Over the same steps the app-container CPU ratio was 1.03-1.08 --
-#   app CPU sits within 8% between the meshes wherever both arms deliver the
-#   offered load, which is the mesh-independent denominator this comparison
-#   needs.
+# WHAT THE SIDECAR METRIC COSTS AN ISTIO-VS-MAZU COMPARISON
+#   Read this before attributing any fleet-size difference to the meshes.
+#   With this metric live, fleet size becomes a function of the mesh under
+#   test, and the comparison acquires a circularity:
 #
-#   Utilization is usage/request. The app containers request 1 CPU via
-#   socialnetwork-bench-values.yaml, so 70% trips at 700m. The sidecar
-#   requests only 100m, so the retired metric tripped at 70m -- ~10x more
-#   sensitive per absolute core. That is why it drove essentially all of the
-#   observed scaling, and why removing it shrinks fleets substantially: at
-#   1400 RPS Istio's 16.96 aggregate app CPU implies ~24 pods of demand at a
-#   700m target, against the ~102 pods the sidecar metric actually produced.
+#     Mazu's proxy carries RBE and attestation work that stock Envoy does not
+#     -> it burns more sidecar CPU -> the HPA hands Mazu more pods -> the
+#     larger fleet absorbs the latency -> Mazu scores as comparable.
+#
+#   Sidecar CPU is also the quantity collect_metrics_sn.sh MEASURES
+#   (plot_sn_cpu.dat), so it is now both an input to the independent variable
+#   and a reported outcome. That is a legitimate experiment -- "how much
+#   bigger a fleet does each mesh demand at a fixed offered load" -- but it is
+#   NOT a like-for-like latency comparison at equal fleet size. Do not read
+#   the two as if they were the same figure.
+#
+#   Measured on results/sn-sweep-09-02-26_203058, with this metric live: the
+#   two arms' fleets diverged 2.6x (55 vs 143 ready pods at 600 RPS). Over the
+#   same steps the app-container CPU ratio was 1.03-1.08 -- app CPU sits
+#   within 8% between the meshes wherever both arms deliver the offered load,
+#   so an app-only HPA is the mesh-INDEPENDENT alternative if that is what a
+#   given figure needs.
+#
+#   THE SIDECAR METRIC DOMINATES. Utilization is usage/request. The app
+#   containers request 1 CPU via socialnetwork-bench-values.yaml, so 70% trips
+#   at 700m. The sidecar requests only 100m, so its 70% trips at 70m -- ~10x
+#   more sensitive per absolute core. Expect it to drive essentially all of
+#   the observed scaling and to produce substantially LARGER fleets: at 1400
+#   RPS Istio's 16.96 aggregate app CPU implies ~24 pods of demand at a 700m
+#   target, against the ~102 pods the sidecar metric actually produced. Size
+#   the cluster for that -- see CEILINGS below.
 #
 # CAVEAT -- APP CPU IS ONLY MESH-INDEPENDENT AT EQUAL THROUGHPUT
-#   wrk2 offers a fixed rate, so the two arms do the same app-side work only
-#   while both DELIVER that rate. Past an arm's throughput ceiling less
-#   traffic reaches its app containers, its app CPU falls, and this HPA hands
-#   the FAILING arm FEWER pods -- a quieter confound than the one removed
-#   above, in the opposite direction. In the run cited above Mazu saturated
-#   at ~785 RPS and its app CPU fell to 0.66x Istio's by 1400 RPS. Always
-#   read rps_delivered in summary.csv before comparing pod counts across arms
-#   at a given step.
+#   This applies to the app-container metric whether or not the sidecar one is
+#   live. wrk2 offers a fixed rate, so the two arms do the same app-side work
+#   only while both DELIVER that rate. Past an arm's throughput ceiling less
+#   traffic reaches its app containers, its app CPU falls, and that metric
+#   hands the FAILING arm FEWER pods -- a confound in the opposite direction
+#   to the sidecar one above, and the two do not cancel. In the run cited
+#   above Mazu saturated at ~785 RPS and its app CPU fell to 0.66x Istio's by
+#   1400 RPS. Always read rps_delivered in summary.csv before comparing pod
+#   counts across arms at a given step.
 #
 # WHY NO DATASTORES
 #   Only the stateless Thrift services and the nginx/media frontends appear
@@ -88,15 +104,13 @@ spec:
   minReplicas: 1
   maxReplicas: 40
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -125,15 +139,13 @@ spec:
   minReplicas: 1
   maxReplicas: 30
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -162,15 +174,13 @@ spec:
   minReplicas: 1
   maxReplicas: 30
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -199,15 +209,13 @@ spec:
   minReplicas: 1
   maxReplicas: 30
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -236,15 +244,13 @@ spec:
   minReplicas: 1
   maxReplicas: 30
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -273,15 +279,13 @@ spec:
   minReplicas: 1
   maxReplicas: 30
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -310,15 +314,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -347,15 +349,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -384,15 +384,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -421,15 +419,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -458,15 +454,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -495,15 +489,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
@@ -532,15 +524,13 @@ spec:
   minReplicas: 1
   maxReplicas: 16
   metrics:
-  # RETIRED -- see WHY APP CPU ONLY in the header. Do not re-enable
-  # for an Istio-vs-Mazu run without reading that note first.
-#  - type: ContainerResource
-#    containerResource:
-#      name: cpu
-#      container: istio-proxy
-#      target:
-#        type: Utilization
-#        averageUtilization: 70
+  - type: ContainerResource
+    containerResource:
+      name: cpu
+      container: istio-proxy
+      target:
+        type: Utilization
+        averageUtilization: 70
   - type: ContainerResource
     containerResource:
       name: cpu
