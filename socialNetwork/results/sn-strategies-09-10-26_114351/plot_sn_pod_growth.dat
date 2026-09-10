@@ -1,0 +1,27 @@
+# Data behind plot_sn_pod_growth.pdf/.png -- total ready pods vs offered RPS.
+#
+# SOURCE     <run-dir>/<strategy>/pods-<rps>-sum.csv, written by
+#            summarize_sn_pods.py from the raw pods-<rps>.csv that
+#            run-socialnetwork-strategies.sh polls once a second for the whole
+#            load step. A pod counts toward `total` only when it is BOTH
+#            phase=Running AND ready=True at that sample, so pods that exist but
+#            are not yet serving traffic are excluded.
+# TRANSFORM  settled = the LAST `total` sample of the step, i.e. the fleet the
+#            step ended with. peak = max(`total`) over the step. Under HPA the
+#            two differ whenever a step was still ramping when its window
+#            closed, so both are kept -- a settled-only number hides an arm that
+#            overshot and came back down.
+# UNITS      ready pods, summed over every service in the chart.
+# LAYOUT     one row per RPS step; one settled/peak column pair per strategy.
+# rps	Istio_settled	Istio_peak	Mazu_settled	Mazu_peak
+100	36	36	36	36
+200	37	37	37	37
+400	38	38	38	38
+600	40	40	39	39
+800	42	42	42	42
+1000	45	45	43	43
+1200	47	47	47	47
+1400	50	50	47	47
+1600	50	50	47	47
+1800	50	50	47	47
+2000	50	50	47	47

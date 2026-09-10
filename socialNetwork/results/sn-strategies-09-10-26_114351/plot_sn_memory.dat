@@ -1,0 +1,83 @@
+# Data behind plot_sn_memory.pdf/.png -- one row per (RPS step, component).
+#
+# SOURCE     <run-dir>/<strategy>/metrics_<rps>.json, written by
+#            collect_metrics_sn.sh: the `totals.memory.<component>` block, a
+#            Prometheus instant vector holding ONE fleet-wide scalar per
+#            component, already averaged over that load step's window.
+# TRANSFORM  the scalar is taken as-is, then converted from bytes to MiB
+#            (/1024^2). The figure picks MiB or GiB per panel;
+#            this file is MiB throughout, so every row stays
+#            directly comparable.
+#            The per-pod `memory.<component>` query_range matrices in the same
+#            file are deliberately NOT used: under HPA the pod count is a
+#            dependent variable that differs between arms and between steps, so
+#            a per-pod average flatters whichever arm ran more replicas even
+#            though the cluster is paying more. The fleet-wide sum is the only
+#            cross-arm-comparable number. (Same reasoning as the "WHY THE TOTALS
+#            BLOCK" section of collect_metrics_sn.sh.)
+#            ratio = Mazu / Istio, and is N/A unless both arms measured that
+#            step and the Istio value is non-zero.
+#            A component whose Prometheus query failed at collection time comes
+#            back as an empty result and is written N/A -- never as 0.
+# UNITS      memory (working set) in MiB.
+# NOTE       kube_apiserver is a CLUSTER-WIDE background cost. It is reported for
+#            completeness but, unlike the other four components, is not
+#            attributable to this workload.
+# LAYOUT     one row per (RPS step, component); one column per strategy, then
+#            the ratio. Rows where no arm has a value are omitted.
+# rps	component	Istio	Mazu	ratio_mazu_over_istio
+100	app	4256.52	3456.24	0.812
+100	proxy	1814.87	2118.09	1.167
+100	istiod	173.17	210.06	1.213
+100	ingressgateway	388.38	489.87	1.261
+100	kube_apiserver	1436.71	1493.29	1.039
+200	app	4410.94	3625.66	0.822
+200	proxy	1762.33	2141.98	1.215
+200	istiod	134.92	174.48	1.293
+200	ingressgateway	373.26	481.24	1.289
+200	kube_apiserver	1441.01	1500.80	1.041
+400	app	4690.99	3876.75	0.826
+400	proxy	1810.71	2201.68	1.216
+400	istiod	138.19	174.44	1.262
+400	ingressgateway	369.09	479.54	1.299
+400	kube_apiserver	1433.70	1492.98	1.041
+600	app	5158.44	4170.50	0.808
+600	proxy	1918.23	2289.97	1.194
+600	istiod	148.64	174.36	1.173
+600	ingressgateway	389.31	488.70	1.255
+600	kube_apiserver	1443.61	1486.89	1.030
+800	app	5648.08	4660.38	0.825
+800	proxy	2108.69	2572.76	1.220
+800	istiod	141.83	192.52	1.357
+800	ingressgateway	420.53	535.58	1.274
+800	kube_apiserver	1444.49	1479.77	1.024
+1000	app	5972.29	5357.86	0.897
+1000	proxy	2232.66	2668.26	1.195
+1000	istiod	144.87	183.04	1.263
+1000	ingressgateway	415.26	543.45	1.309
+1000	kube_apiserver	1443.08	1475.10	1.022
+1200	app	6475.94	6669.48	1.030
+1200	proxy	2261.36	2871.31	1.270
+1200	istiod	142.01	195.75	1.378
+1200	ingressgateway	406.27	538.31	1.325
+1200	kube_apiserver	1446.14	1477.34	1.022
+1400	app	7603.04	7740.91	1.018
+1400	proxy	2400.12	2832.27	1.180
+1400	istiod	142.78	142.17	0.996
+1400	ingressgateway	415.83	520.33	1.251
+1400	kube_apiserver	1450.72	1473.99	1.016
+1600	app	8620.11	8651.07	1.004
+1600	proxy	2363.38	2834.39	1.199
+1600	istiod	127.12	135.60	1.067
+1600	ingressgateway	408.75	530.72	1.298
+1600	kube_apiserver	1453.83	1480.44	1.018
+1800	app	9693.13	9640.20	0.995
+1800	proxy	2346.24	2850.61	1.215
+1800	istiod	101.86	137.91	1.354
+1800	ingressgateway	415.33	544.37	1.311
+1800	kube_apiserver	1454.82	1481.48	1.018
+2000	app	10828.35	10784.27	0.996
+2000	proxy	2358.50	2856.73	1.211
+2000	istiod	100.83	134.73	1.336
+2000	ingressgateway	429.78	557.65	1.298
+2000	kube_apiserver	1451.81	1483.77	1.022

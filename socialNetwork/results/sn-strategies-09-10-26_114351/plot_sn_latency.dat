@@ -1,0 +1,74 @@
+# Data behind plot_sn_latency.pdf/.png -- both panels, one row per (strategy, RPS step).
+#
+# SOURCE     percentiles: <run-dir>/<strategy>/<rps>.txt, the raw wrk2 output
+#            ("Latency Distribution" block). summary.csv carries only p50 and
+#            p99, so p90 exists ONLY here; where a raw file is missing, p50/p99
+#            fall back to summary.csv and p90 is N/A.
+#            timeouts / non_2xx: summary.csv when the column is present, else the
+#            raw "Socket errors: ... timeout N" and "Non-2xx or 3xx responses: N"
+#            lines. wrk2 OMITS both lines entirely when the count is zero, so an
+#            absent line is read as 0 rather than as unknown.
+# TRANSFORM  wrk2 prints us / ms / s AND m -- it switches to minutes past ~60s,
+#            e.g. "0.95m" -- so every latency here is normalised to MILLISECONDS.
+#            offered_reqs = target RPS x the step duration wrk2 reports ("N
+#            requests in 4.00m"), NOT wrk2's own request count: that count
+#            already excludes the requests that timed out, and using it as the
+#            denominator would understate the loss. completed_reqs is wrk2's
+#            count, kept alongside for exactly that comparison.
+#            shortfall     = offered_reqs - completed_reqs, floored at 0. THIS
+#                            is the load the percentiles left out, and it is
+#                            what the bottom panel draws and the flag fires on.
+#                            It covers both ways a step loses traffic: requests
+#                            the server never answered, and requests the client
+#                            never managed to send.
+#            shortfall_pct = shortfall / offered_reqs x 100
+#            timeout_pct   = timeouts / offered_reqs x 100
+#            non_2xx_pct   = non_2xx  / offered_reqs x 100
+#            loss_basis    = which quantity the flag used: `shortfall` normally,
+#                            `timeouts` only where no raw wrk2 file supplied a
+#                            completed count.
+#            flagged       = yes once shortfall_pct >= 1% of the
+#                            offered load -- the steps the figure shades and
+#                            rings in red.
+# WARNING    timeouts IS NOT A REQUEST COUNT and is NOT the basis of the flag.
+#            wrk2 increments it per socket timeout EVENT across the connection
+#            pool, so timeout_pct can exceed shortfall_pct and even imply more
+#            lost requests than were ever offered -- on the 09-03 12:45 run,
+#            Istio at 100 RPS reported 22862 completed + 3412 timeouts against
+#            24000 offered. Read it as a symptom ("the losses were socket
+#            timeouts") and read shortfall_pct for the magnitude.
+#            The converse also holds: a step whose client could not reach the
+#            target rate loses load with timeouts=0 and non_2xx=0, which is why
+#            flagging on timeouts marked the two mildest steps of that run and
+#            left the two most degraded ones clean.
+# CAVEAT     THE PERCENTILES DESCRIBE COMPLETED REQUESTS ONLY. wrk2 drops a
+#            timed-out request before it reaches the histogram, so a step can
+#            report an excellent p99 while a large share of the offered load
+#            never came back -- and non_2xx stays ~0 beside it, because a
+#            timeout carries no HTTP status. Read p50/p90/p99 next to
+#            shortfall_pct on the same row, never on their own.
+# UNITS      latency in ms; *_pct in percent of offered load; counts in requests;
+#            duration_s in seconds.
+# strategy	rps	p50_ms	p90_ms	p99_ms	shortfall	shortfall_pct	timeouts	timeout_pct	non_2xx	non_2xx_pct	offered_reqs	completed_reqs	duration_s	loss_basis	flagged
+Istio	100	19.85	77.76	178.82	1139	4.746	3415	14.229	0	0.000	24000	22861	240.00	shortfall	yes
+Istio	200	22.22	88.13	202.88	2130	4.438	750	1.562	0	0.000	48000	45870	240.00	shortfall	yes
+Istio	400	25.60	124.93	290.82	0	0.000	30	0.031	0	0.000	96000	96077	240.00	shortfall	no
+Istio	600	30.06	194.56	421.89	1741	1.209	4	0.003	0	0.000	144000	142259	240.00	shortfall	yes
+Istio	800	45.57	628.22	2930.00	0	0.000	0	0.000	0	0.000	192000	192276	240.00	shortfall	no
+Istio	1000	60.74	383.49	825.34	1685	0.702	0	0.000	0	0.000	240000	238315	240.00	shortfall	no
+Istio	1200	200.06	789.50	1720.00	0	0.000	0	0.000	0	0.000	288000	288190	240.00	shortfall	no
+Istio	1400	6930.00	15550.00	24300.00	23081	6.869	0	0.000	0	0.000	336000	312919	240.00	shortfall	yes
+Istio	1600	23890.00	43290.00	52200.00	75335	19.618	0	0.000	0	0.000	384000	308665	240.00	shortfall	yes
+Istio	1800	35130.00	63000.00	74400.00	126281	29.232	0	0.000	0	0.000	432000	305719	240.00	shortfall	yes
+Istio	2000	48140.00	82200.00	93000.00	181495	37.811	0	0.000	0	0.000	480000	298505	240.00	shortfall	yes
+Mazu	100	19.61	76.54	165.50	1139	4.746	3409	14.204	0	0.000	24000	22861	240.00	shortfall	yes
+Mazu	200	22.56	104.13	252.54	2133	4.444	750	1.562	0	0.000	48000	45867	240.00	shortfall	yes
+Mazu	400	26.38	210.05	414.46	0	0.000	29	0.030	0	0.000	96000	96039	240.00	shortfall	no
+Mazu	600	30.16	242.56	521.22	1718	1.193	4	0.003	0	0.000	144000	142282	240.00	shortfall	yes
+Mazu	800	39.39	309.25	827.90	0	0.000	0	0.000	0	0.000	192000	192145	240.00	shortfall	no
+Mazu	1000	75.97	486.91	1410.00	1802	0.751	0	0.000	0	0.000	240000	238198	240.00	shortfall	no
+Mazu	1200	619.01	2680.00	5390.00	1527	0.530	0	0.000	3782	1.313	288000	286473	240.00	shortfall	no
+Mazu	1400	16920.00	36110.00	46200.00	51712	15.390	0	0.000	5683	1.691	336000	284288	240.00	shortfall	yes
+Mazu	1600	31700.00	60600.00	72600.00	104886	27.314	0	0.000	5666	1.476	384000	279114	240.00	shortfall	yes
+Mazu	1800	43840.00	78600.00	91200.00	156679	36.268	0	0.000	5647	1.307	432000	275321	240.00	shortfall	yes
+Mazu	2000	52200.00	92400.00	106200.00	204386	42.580	0	0.000	5741	1.196	480000	275614	240.00	shortfall	yes

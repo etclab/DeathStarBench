@@ -1,0 +1,2 @@
+POD                      NODE     CPU_REQ   MEM_REQ
+istiod-fb9866b9d-mmdzk   node-1   2         2Gi
